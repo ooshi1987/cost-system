@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 食材・調味料
+model Ingredient {
+  id                  String          @id @default(cuid())
+  name                String          @unique
+  unit                String          // "g" or "ml"
+  costPerUnit         Float           // 円/g or 円/ml
+  lastUpdated         DateTime        @updatedAt
+
+  recipeItems         RecipeItem[]
+  deliveryItems       DeliveryItem[]
+
+  @@index([name])
+}
+
+// メニュー商品
+model MenuItem {
+  id                  String          @id @default(cuid())
+  name                String          @unique
+  sellingPrice        Float           // 販売価格（円）
+  category            String?         // カテゴリ（例：豚肉料理）
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  recipeItems         RecipeItem[]
+
+  @@index([name])
+}
+
+// レシピ明細（メニュー × 食材）
+model RecipeItem {
+  id                  String          @id @default(cuid())
+  menuItemId          String
+  ingredientId        String
+  quantity            Float           // グラム数またはミリリットル数
+
+  menuItem            MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient          Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, ingredientId])
+  @@index([menuItemId])
+  @@index([ingredientId])
+}
+
+// 納品書
+model DeliverySlip {
+  id                  String          @id @default(cuid())
+  photoPath           String?         // 撮影写真へのパス
+  ocrRawData          String?         // OCRの生データ（JSON）
+  createdAt           DateTime        @default(now())
+  processedAt         DateTime?
+
+  deliveryItems       DeliveryItem[]
+
+  @@index([createdAt])
+}
+
+// 納品書の明細
+model DeliveryItem {
+  id                  String          @id @default(cuid())
+  deliverySlipId      String
+  ingredientId        String
+  quantity            Float
+  unit                String          // "g" or "ml"
+  totalPrice          Float           // 合計金額（円）
+
+  deliverySlip        DeliverySlip    @relation(fields: [deliverySlipId], references: [id], onDelete: Cascade)
+  ingredient          Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([deliverySlipId])
+  @@index([ingredientId])
+}
