@@ -23,7 +23,7 @@ export default function DeliveryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const compressImage = async (file: File): Promise<Blob> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
@@ -32,7 +32,6 @@ export default function DeliveryPage() {
           let width = img.width;
           let height = img.height;
 
-          // 画像サイズを縮小（最大2000x2000）
           const maxSize = 2000;
           if (width > height) {
             if (width > maxSize) {
@@ -53,8 +52,10 @@ export default function DeliveryPage() {
             ctx.drawImage(img, 0, 0, width, height);
           }
 
-          // 圧縮品質を調整（0.7 = 70%品質）
-          canvas.toBlob(resolve, 'image/jpeg', 0.7);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('画像変換に失敗しました'));
+          }, 'image/jpeg', 0.7);
         };
         img.src = event.target?.result as string;
       };
@@ -129,20 +130,20 @@ export default function DeliveryPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto p-8">
-        <div className="mb-8">
+      <div className="max-w-3xl mx-auto p-4 sm:p-8">
+        <div className="mb-6 sm:mb-8">
           <Link href="/" className="text-blue-600 hover:text-blue-700">
             ← ダッシュボードに戻る
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold mb-8">納品書をスキャン</h1>
+        <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">納品書をスキャン</h1>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-8">
           {!result ? (
             <>
               <div className="mb-6">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                   {preview ? (
                     <div>
                       <img src={preview} alt="Preview" className="max-w-full max-h-96 mx-auto mb-4" />
@@ -156,13 +157,31 @@ export default function DeliveryPage() {
                   ) : (
                     <>
                       <div className="text-5xl mb-4">📸</div>
-                      <p className="text-gray-600 mb-4">納品書の写真をアップロードしてください</p>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-                      >
-                        ファイルを選択
-                      </button>
+                      <p className="text-gray-600 mb-4">納品書の写真を撮影またはアップロード</p>
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <button
+                          onClick={() => {
+                            if (fileInputRef.current) {
+                              fileInputRef.current.setAttribute('capture', 'environment');
+                              fileInputRef.current.click();
+                            }
+                          }}
+                          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+                        >
+                          📷 カメラで撮影
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (fileInputRef.current) {
+                              fileInputRef.current.removeAttribute('capture');
+                              fileInputRef.current.click();
+                            }
+                          }}
+                          className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-semibold"
+                        >
+                          🖼️ ファイルを選択
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
