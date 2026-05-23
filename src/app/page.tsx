@@ -1,49 +1,64 @@
-'use client';
-
 import Link from 'next/link';
 
-export default function Dashboard() {
+const NAV_ITEMS = [
+  {
+    href: '/menu',
+    icon: '📋',
+    label: '商品一覧',
+    description: 'メニューの登録・価格管理',
+  },
+  {
+    href: '/ingredients?type=food',
+    icon: '🥬',
+    label: '食材一覧',
+    description: '食材の原価を確認・編集',
+  },
+  {
+    href: '/ingredients?type=seasoning',
+    icon: '🧂',
+    label: '調味料一覧',
+    description: '調味料の原価を確認・編集',
+  },
+  {
+    href: '/delivery-history',
+    icon: '📦',
+    label: '納品履歴',
+    description: '過去の納品書を確認・修正',
+  },
+];
 
+export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-8 sm:py-8">
+      <div className="max-w-xl mx-auto px-4 py-6 sm:py-10">
 
         {/* ヘッダー */}
-        <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between sm:mb-8">
-          <h1 className="text-2xl font-bold sm:text-4xl">利益率ダッシュボード</h1>
-          <div className="flex gap-2">
-            <Link href="/delivery"
-              className="flex-1 text-center sm:flex-none bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 active:bg-blue-800">
-              📸 納品書をスキャン
-            </Link>
-            <Link href="/menu"
-              className="flex-1 text-center sm:flex-none bg-green-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 active:bg-green-800">
-              📋 メニュー管理
-            </Link>
-          </div>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl font-bold sm:text-3xl mb-4">原価管理システム</h1>
+          <Link
+            href="/delivery"
+            className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-2xl text-base font-bold hover:bg-blue-700 active:bg-blue-800 shadow"
+          >
+            📸 納品書をスキャン
+          </Link>
         </div>
 
-
-        {/* ショートカット */}
-        <div className="mt-4 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-          <Link href="/menu"
-            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
-            <div className="text-2xl mb-2">📋</div>
-            <div className="font-semibold text-sm sm:text-base">商品一覧</div>
-            <div className="text-gray-500 text-xs mt-1">メニューの登録・インポート</div>
-          </Link>
-          <Link href="/ingredients"
-            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
-            <div className="text-2xl mb-2">🥘</div>
-            <div className="font-semibold text-sm sm:text-base">食材・調味料管理</div>
-            <div className="text-gray-500 text-xs mt-1">食材の原価を確認・編集</div>
-          </Link>
-          <Link href="/delivery-history"
-            className="col-span-2 sm:col-span-1 bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
-            <div className="text-2xl mb-2">📦</div>
-            <div className="font-semibold text-sm sm:text-base">納品履歴</div>
-            <div className="text-gray-500 text-xs mt-1">過去の納品書を確認・修正</div>
-          </Link>
+        {/* 縦並びナビ */}
+        <div className="space-y-3">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-4 bg-white rounded-2xl shadow-sm px-5 py-4 hover:shadow-md active:bg-gray-50 transition"
+            >
+              <span className="text-3xl shrink-0">{item.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-base">{item.label}</div>
+                <div className="text-gray-400 text-xs mt-0.5">{item.description}</div>
+              </div>
+              <span className="text-gray-300 text-xl shrink-0">›</span>
+            </Link>
+          ))}
         </div>
 
       </div>
