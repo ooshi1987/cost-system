@@ -17,7 +17,9 @@ interface ExtractedItem {
   category: string;
   selected: boolean;
   // インポート後の状態
-  status?: 'pending' | 'saved' | 'duplicate' | 'error';
+  // duplicate      = DBに既存（選択不可）
+  // batch-duplicate = 今回のバッチ内で別ファイルに同名あり（選択可・デフォルトOFF）
+  status?: 'pending' | 'saved' | 'duplicate' | 'batch-duplicate' | 'error';
 }
 
 type ImportStep = 'idle' | 'uploading' | 'preview' | 'saving' | 'done';
@@ -131,14 +133,16 @@ export default function MenuPage() {
           continue; // このファイルはスキップして次へ
         }
 
-        // このバッチ内での重複チェック（同じ商品が複数ファイルに載っていてもマージ）
+        // 重複チェック：DBに既存 vs バッチ内で別ファイルに同名あり で分けて管理
         const collectedNames = new Set(allItems.map((item) => item.name));
         for (const item of data.items as { name: string; sellingPrice: number; category: string }[]) {
-          const isDuplicate = existingNames.has(item.name) || collectedNames.has(item.name);
+          const isDbDuplicate = existingNames.has(item.name);
+          const isBatchDuplicate = !isDbDuplicate && collectedNames.has(item.name);
+          const status = isDbDuplicate ? 'duplicate' : isBatchDuplicate ? 'batch-duplicate' : 'pending';
           allItems.push({
             ...item,
-            selected: !isDuplicate,
-            status: isDuplicate ? 'duplicate' : 'pending',
+            selected: status === 'pending', // pending のみデフォルトON
+            status,
           });
           collectedNames.add(item.name);
         }
@@ -199,7 +203,7 @@ export default function MenuPage() {
 
     setImportStep('saving');
 
-    // 1件ずつ登録してステータスを更新
+    // 1件ずつ登録してステータスを更新（batch-duplicate も selected なら保存する）
     const updated = [...extractedItems];
     for (let i = 0; i < updated.length; i++) {
       if (!updated[i].selected || updated[i].status === 'duplicate') continue;
@@ -329,19 +333,21 @@ export default function MenuPage() {
               {/* ── スマホ: カードリスト ── */}
               <div className="sm:hidden space-y-2 mb-4">
                 {extractedItems.map((item, i) => {
-                  const isDuplicate = item.status === 'duplicate';
+                  const isDbDup = item.status === 'duplicate';
+                  const isBatchDup = item.status === 'batch-duplicate';
                   return (
                     <div key={i}
                       className={`border rounded-xl p-3 ${
-                        isDuplicate ? 'opacity-40 bg-gray-50' :
+                        isDbDup   ? 'opacity-40 bg-gray-50' :
+                        isBatchDup ? 'border-amber-300 bg-amber-50' :
                         item.status === 'saved' ? 'border-green-300 bg-green-50' :
                         item.status === 'error' ? 'border-red-300 bg-red-50' :
                         item.selected ? 'border-blue-200 bg-white' : 'bg-gray-50'
                       }`}>
                       <div className="flex items-start gap-3">
                         <input type="checkbox"
-                          checked={item.selected && !isDuplicate}
-                          disabled={isDuplicate || importStep !== 'preview'}
+                          checked={item.selected && !isDbDup}
+                          disabled={isDbDup || importStep !== 'preview'}
                           onChange={() => toggleItem(i)}
                           className="mt-1 w-5 h-5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -371,8 +377,9 @@ export default function MenuPage() {
                             </>
                           )}
                         </div>
-                        <div className="text-xs flex-shrink-0">
-                          {isDuplicate && <span className="text-gray-400">登録済</span>}
+                        <div className="text-xs flex-shrink-0 text-right">
+                          {isDbDup   && <span className="text-gray-400">登録済</span>}
+                          {isBatchDup && <span className="text-amber-600">⚠️<br/>別ページ<br/>に同名</span>}
                           {item.status === 'saved' && <span className="text-green-600 font-bold">✓</span>}
                           {item.status === 'error' && <span className="text-red-500">エラー</span>}
                         </div>
@@ -398,9 +405,10 @@ export default function MenuPage() {
                     {extractedItems.map((item, i) => (
                       <tr key={i}
                         className={
-                          item.status === 'duplicate' ? 'bg-gray-50 opacity-50' :
-                          item.status === 'saved' ? 'bg-green-50' :
-                          item.status === 'error' ? 'bg-red-50' :
+                          item.status === 'duplicate'       ? 'bg-gray-50 opacity-50' :
+                          item.status === 'batch-duplicate' ? 'bg-amber-50' :
+                          item.status === 'saved'           ? 'bg-green-50' :
+                          item.status === 'error'           ? 'bg-red-50' :
                           item.selected ? 'bg-white' : 'bg-gray-50 opacity-60'
                         }>
                         <td className="px-3 py-2 text-center">
@@ -425,10 +433,11 @@ export default function MenuPage() {
                             : <span className="text-gray-600">{item.category}</span>}
                         </td>
                         <td className="px-3 py-2 text-center text-xs">
-                          {item.status === 'duplicate' && <span className="text-gray-400">登録済</span>}
-                          {item.status === 'saved' && <span className="text-green-600 font-semibold">✓ 完了</span>}
-                          {item.status === 'error' && <span className="text-red-500">エラー</span>}
-                          {item.status === 'pending' && importStep === 'saving' && <span className="text-gray-400">…</span>}
+                          {item.status === 'duplicate'       && <span className="text-gray-400">登録済</span>}
+                          {item.status === 'batch-duplicate' && <span className="text-amber-600 font-medium">⚠️ 別ページに同名</span>}
+                          {item.status === 'saved'           && <span className="text-green-600 font-semibold">✓ 完了</span>}
+                          {item.status === 'error'           && <span className="text-red-500">エラー</span>}
+                          {item.status === 'pending'         && importStep === 'saving' && <span className="text-gray-400">…</span>}
                         </td>
                       </tr>
                     ))}
