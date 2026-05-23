@@ -84,6 +84,17 @@ export default function MenuPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ── ファイルサイズチェック (最大15MB) ──
+    const maxBytes = 15 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setImportError(
+        `ファイルが大きすぎます（${(file.size / 1024 / 1024).toFixed(1)}MB）。\n` +
+        '15MB以下にしてください。PDFの場合は特定のページを画像（JPG/PNG）で保存してアップロードするとより小さくなります。'
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setFileName(file.name);
     setImportError(null);
     setImportStep('uploading');
@@ -100,6 +111,11 @@ export default function MenuPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Anthropic 413 / ファイルサイズ超過エラーを日本語に変換
+        const rawError: string = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+        if (rawError.includes('request_too_large') || rawError.includes('413')) {
+          throw new Error('ファイルが大きすぎてAIが処理できませんでした。\nPDFの場合はページを画像（JPG/PNG）で保存してからアップロードしてください。');
+        }
         throw new Error(data.error || '読み取りに失敗しました');
       }
 

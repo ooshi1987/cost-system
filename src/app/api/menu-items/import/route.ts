@@ -120,8 +120,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Menu import error:', error);
+    const msg = error instanceof Error ? error.message : '';
+    if (msg.includes('request_too_large') || msg.includes('413')) {
+      return NextResponse.json(
+        { error: 'ファイルが大きすぎます。10MB以下のPDFか、メニュー表を画像（JPG/PNG）で保存してアップロードしてください。' },
+        { status: 413 }
+      );
+    }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : '読み取りに失敗しました' },
+      { error: msg || '読み取りに失敗しました' },
       { status: 500 }
     );
   }
