@@ -5,6 +5,7 @@ interface ExtractedMenuItem {
   name: string;
   sellingPrice: number;
   category: string;
+  order: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -43,24 +44,28 @@ export async function POST(request: NextRequest) {
     const prompt = `このメニュー表から商品情報を抽出してください。
 
 以下のルールに従って JSON 形式で返してください：
-- name: 商品名（正確に）
+- name: 商品名（メニュー表に記載のまま正確に）
 - sellingPrice: 税込み販売価格（数字のみ、円マーク不要）
-- category: 以下のカテゴリーから最も適切なものを1つ選んでください
-  「前菜・サラダ」「スープ」「肉料理」「魚料理」「丼・ご飯物」「麺類」「揚げ物」「鍋物」「デザート」「ドリンク」「アルコール」「セットメニュー」「その他」
+- category: メニュー表に記載されているセクション名・見出しをそのまま使用してください
+  （例：「焼き鳥」「前菜」「おすすめ」「ドリンク」「デザート」など）
+  セクションが明記されていない場合は「その他」としてください
+- order: メニュー表の上から何番目に記載されているか（1から始まる整数）
 
 レスポンス形式（JSON のみ返してください）：
 {
   "items": [
-    {"name": "唐揚げ定食", "sellingPrice": 850, "category": "肉料理"},
-    {"name": "ざるそば", "sellingPrice": 680, "category": "麺類"},
+    {"name": "ささみ(梅)", "sellingPrice": 220, "category": "焼き鳥", "order": 1},
+    {"name": "ささみ(わさび)", "sellingPrice": 220, "category": "焼き鳥", "order": 2},
+    {"name": "生ビール", "sellingPrice": 550, "category": "ドリンク", "order": 3},
     ...
   ]
 }
 
 注意：
 - 価格が読み取れないものは除外してください
-- セット内容の説明や備考は除外してください
-- メニュー名のみ抽出（サブタイトルや説明文は不要）`;
+- メニュー表の見出し・セクション名はそのまま category に使用してください（AI で別カテゴリーに変えないでください）
+- 記載されている順番を order に正確に反映してください
+- 商品名のみ抽出（説明文・備考は不要）`;
 
     // PDFと画像でコンテンツの組み立て方が異なる
     const contentItem = isPdf
@@ -114,9 +119,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // order の昇順に並び替えてから返す
+    const sorted = [...result.items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
     return NextResponse.json({
-      items: result.items,
-      count: result.items.length,
+      items: sorted,
+      count: sorted.length,
     });
   } catch (error) {
     console.error('Menu import error:', error);

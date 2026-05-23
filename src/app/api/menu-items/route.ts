@@ -11,7 +11,7 @@ export async function GET() {
           },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
     return NextResponse.json(menuItems);
@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, sellingPrice, category } = body;
+    const { name, sellingPrice, category, sortOrder } = body;
 
     if (!name || !sellingPrice) {
       return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
         name,
         sellingPrice: parseFloat(sellingPrice),
         category: category || null,
+        sortOrder: sortOrder != null ? parseInt(sortOrder) : null,
       },
     });
 

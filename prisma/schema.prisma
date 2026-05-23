@@ -26,13 +26,15 @@ model MenuItem {
   id                  String          @id @default(cuid())
   name                String          @unique
   sellingPrice        Float           // 販売価格（円）
-  category            String?         // カテゴリ（例：豚肉料理）
+  category            String?         // カテゴリ（メニュー表のセクション名）
+  sortOrder           Int?            // メニュー表での掲載順（nullは末尾）
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
 
   recipeItems         RecipeItem[]
 
   @@index([name])
+  @@index([sortOrder])
 }
 
 // レシピ明細（メニュー × 食材）

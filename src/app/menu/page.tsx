@@ -15,6 +15,7 @@ interface ExtractedItem {
   name: string;
   sellingPrice: number;
   category: string;
+  order?: number;       // メニュー表での掲載順
   selected: boolean;
   // インポート後の状態
   // duplicate      = DBに既存（選択不可）
@@ -197,13 +198,13 @@ export default function MenuPage() {
 
         // 重複チェック：DBに既存 vs バッチ内で別ファイルに同名あり で分けて管理
         const collectedNames = new Set(allItems.map((item) => item.name));
-        for (const item of data.items as { name: string; sellingPrice: number; category: string }[]) {
+        for (const item of data.items as { name: string; sellingPrice: number; category: string; order?: number }[]) {
           const isDbDuplicate = existingNames.has(item.name);
           const isBatchDuplicate = !isDbDuplicate && collectedNames.has(item.name);
           const status = isDbDuplicate ? 'duplicate' : isBatchDuplicate ? 'batch-duplicate' : 'pending';
           allItems.push({
             ...item,
-            selected: status === 'pending', // pending のみデフォルトON
+            selected: status === 'pending',
             status,
           });
           collectedNames.add(item.name);
@@ -277,6 +278,7 @@ export default function MenuPage() {
             name: updated[i].name,
             sellingPrice: updated[i].sellingPrice,
             category: updated[i].category || null,
+            sortOrder: updated[i].order ?? null,
           }),
         });
         updated[i].status = response.ok ? 'saved' : 'error';
