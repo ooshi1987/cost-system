@@ -212,14 +212,35 @@ export default function DeliveryPage() {
             </>
           ) : (
             <div>
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded">
-                <p className="text-green-700 font-semibold">
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <p className="text-green-700 font-semibold text-sm">
                   ✓ {result.itemsProcessed}件の食材情報を取得しました
                 </p>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              {/* ── スマホ: カードリスト ── */}
+              <div className="sm:hidden space-y-2 mb-5">
+                {result.items.map((item, idx) => (
+                  <div key={idx} className="bg-gray-50 rounded-xl px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-base">{item.name}</span>
+                      <span className="font-bold text-base">¥{item.totalPrice.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm text-gray-500">
+                        {item.quantity.toLocaleString()} {item.unit}
+                      </span>
+                      <span className="text-sm text-gray-400">
+                        単価 ¥{item.pricePerUnit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── PC: テーブル ── */}
+              <div className="hidden sm:block overflow-x-auto mb-5">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-100 border-b">
                     <tr>
                       <th className="px-4 py-2 text-left">食材名</th>
@@ -243,19 +264,19 @@ export default function DeliveryPage() {
                 </table>
               </div>
 
-              <div className="mt-6 space-y-2">
+              <div className="space-y-2">
                 <button
                   onClick={() => {
                     setResult(null);
                     setPreview(null);
                   }}
-                  className="w-full bg-blue-600 text-white py-3 rounded font-semibold hover:bg-blue-700"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 active:bg-blue-800"
                 >
                   別の納品書をスキャン
                 </button>
                 <Link
                   href="/"
-                  className="block text-center bg-gray-600 text-white py-3 rounded font-semibold hover:bg-gray-700"
+                  className="block text-center bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 active:bg-gray-300"
                 >
                   ダッシュボードに戻る
                 </Link>
