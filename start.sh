@@ -8,8 +8,16 @@ if [ -z "$API_KEY" ]; then
   exit 1
 fi
 
+# 現在のLAN IPを自動取得
+LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "不明")
+
 echo "✅ API キーを読み込みました"
 echo "🚀 開発サーバーを起動中..."
+echo ""
+echo "📱 アクセスURL:"
+echo "   PC    : http://localhost:3000"
+echo "   スマホ : http://${LOCAL_IP}:3000"
+echo ""
 
-# 環境変数を指定してサーバーを起動
+# 全インターフェースでListenして起動
 ANTHROPIC_API_KEY="$API_KEY" npm run dev
