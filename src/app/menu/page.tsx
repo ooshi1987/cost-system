@@ -35,7 +35,8 @@ export default function MenuPage() {
   const [importStep, setImportStep] = useState<ImportStep>('idle');
   const [importError, setImportError] = useState<string | null>(null);
   const [extractedItems, setExtractedItems] = useState<ExtractedItem[]>([]);
-  const [fileName, setFileName] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
 
   useEffect(() => {
     fetchMenuItems();
@@ -79,64 +80,89 @@ export default function MenuPage() {
     }
   };
 
-  // --- PDFインポート ---
+  // --- PDFインポート（複数ファイル対応・1枚ずつ処理）---
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // ── ファイルサイズチェック (最大15MB) ──
+    // ── 全ファイルのサイズチェック ──
     const maxBytes = 15 * 1024 * 1024;
-    if (file.size > maxBytes) {
+    const oversized = files.filter((f) => f.size > maxBytes);
+    if (oversized.length > 0) {
       setImportError(
-        `ファイルが大きすぎます（${(file.size / 1024 / 1024).toFixed(1)}MB）。\n` +
-        '15MB以下にしてください。PDFの場合は特定のページを画像（JPG/PNG）で保存してアップロードするとより小さくなります。'
+        oversized.map((f) => `「${f.name}」が大きすぎます（${(f.size / 1024 / 1024).toFixed(1)}MB）`).join('\n') +
+        '\n15MB以下のファイルのみアップロードできます。'
       );
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    setFileName(file.name);
     setImportError(null);
+    setUploadErrors([]);
     setImportStep('uploading');
 
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
+    const allItems: ExtractedItem[] = [];
+    const errors: string[] = [];
+    const existingNames = new Set(menuItems.map((m) => m.name));
 
-      const response = await fetch('/api/menu-items/import', {
-        method: 'POST',
-        body: fd,
-      });
+    // ── 1枚ずつ順番に処理 ──
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress({ current: i + 1, total: files.length, fileName: file.name });
 
-      const data = await response.json();
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
 
-      if (!response.ok) {
-        // Anthropic 413 / ファイルサイズ超過エラーを日本語に変換
-        const rawError: string = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-        if (rawError.includes('request_too_large') || rawError.includes('413')) {
-          throw new Error('ファイルが大きすぎてAIが処理できませんでした。\nPDFの場合はページを画像（JPG/PNG）で保存してからアップロードしてください。');
+        const response = await fetch('/api/menu-items/import', {
+          method: 'POST',
+          body: fd,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const rawError: string = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+          if (rawError.includes('request_too_large') || rawError.includes('413')) {
+            errors.push(`「${file.name}」: ファイルが大きすぎてAIが処理できませんでした`);
+          } else {
+            errors.push(`「${file.name}」: ${data.error || '読み取り失敗'}`);
+          }
+          continue; // このファイルはスキップして次へ
         }
-        throw new Error(data.error || '読み取りに失敗しました');
+
+        // このバッチ内での重複チェック（同じ商品が複数ファイルに載っていてもマージ）
+        const collectedNames = new Set(allItems.map((item) => item.name));
+        for (const item of data.items as { name: string; sellingPrice: number; category: string }[]) {
+          const isDuplicate = existingNames.has(item.name) || collectedNames.has(item.name);
+          allItems.push({
+            ...item,
+            selected: !isDuplicate,
+            status: isDuplicate ? 'duplicate' : 'pending',
+          });
+          collectedNames.add(item.name);
+        }
+      } catch {
+        errors.push(`「${file.name}」: エラーが発生しました`);
       }
-
-      // すでに登録済みの商品名リスト
-      const existingNames = new Set(menuItems.map((m) => m.name));
-
-      setExtractedItems(
-        data.items.map((item: { name: string; sellingPrice: number; category: string }) => ({
-          ...item,
-          selected: !existingNames.has(item.name), // 既存と重複していたらデフォルトOFF
-          status: existingNames.has(item.name) ? 'duplicate' : 'pending',
-        }))
-      );
-      setImportStep('preview');
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : 'エラーが発生しました');
-      setImportStep('idle');
-    } finally {
-      // inputをリセット（同じファイルを再度選択できるように）
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setUploadProgress(null);
+
+    if (allItems.length === 0) {
+      setImportError(
+        errors.length > 0
+          ? errors.join('\n')
+          : 'メニューを読み取れませんでした。別のファイルをお試しください。'
+      );
+      setImportStep('idle');
+      return;
+    }
+
+    setUploadErrors(errors);
+    setExtractedItems(allItems);
+    setImportStep('preview');
   };
 
   const toggleItem = (index: number) => {
@@ -202,7 +228,8 @@ export default function MenuPage() {
     setImportStep('idle');
     setExtractedItems([]);
     setImportError(null);
-    setFileName('');
+    setUploadProgress(null);
+    setUploadErrors([]);
   };
 
   const selectedCount = extractedItems.filter(
@@ -236,6 +263,7 @@ export default function MenuPage() {
                 <div className="text-4xl mb-2">📂</div>
                 <div className="font-semibold text-blue-600">PDFまたは画像ファイルを選択</div>
                 <div className="text-xs text-gray-400 mt-1">PDF・JPG・PNG対応</div>
+                <div className="text-xs text-blue-400 mt-1">📷 画像は複数まとめて選択できます</div>
               </button>
               {importError && (
                 <div className="mt-3 text-red-600 bg-red-50 rounded p-3 text-sm">
@@ -246,17 +274,31 @@ export default function MenuPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="application/pdf,image/*"
+                multiple
                 onChange={handleFileChange}
                 className="hidden"
               />
             </>
           )}
 
-          {importStep === 'uploading' && (
+          {importStep === 'uploading' && uploadProgress && (
             <div className="py-10 text-center">
               <div className="text-3xl mb-3 animate-spin">⚙️</div>
-              <p className="font-semibold text-gray-700">「{fileName}」を解析中…</p>
-              <p className="text-sm text-gray-400 mt-1">Claudeがメニューを読み取っています</p>
+              <p className="font-semibold text-gray-700">
+                {uploadProgress.total > 1
+                  ? `${uploadProgress.current} / ${uploadProgress.total}枚目を解析中…`
+                  : '解析中…'}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">「{uploadProgress.fileName}」</p>
+              <p className="text-xs text-gray-400 mt-1">Claudeがメニューを読み取っています</p>
+              {uploadProgress.total > 1 && (
+                <div className="mt-4 mx-auto w-56 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -273,6 +315,16 @@ export default function MenuPage() {
                   </div>
                 )}
               </div>
+
+              {/* 一部ファイルでエラーがあった場合 */}
+              {uploadErrors.length > 0 && (
+                <div className="mb-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800">
+                  ⚠️ 一部のファイルを読み取れませんでした：
+                  <ul className="mt-1 space-y-0.5 list-disc list-inside">
+                    {uploadErrors.map((err, i) => <li key={i}>{err}</li>)}
+                  </ul>
+                </div>
+              )}
 
               {/* ── スマホ: カードリスト ── */}
               <div className="sm:hidden space-y-2 mb-4">
