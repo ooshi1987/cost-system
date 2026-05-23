@@ -19,6 +19,9 @@ export default function DeliveryPage() {
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // タップ編集用
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<EditableItem | null>(null);
 
   // ── 画像圧縮 ──
   const compressImage = async (file: File): Promise<Blob> => {
@@ -134,11 +137,26 @@ export default function DeliveryPage() {
   };
 
   // ── アイテム操作 ──
-  const updateItem = (idx: number, field: keyof EditableItem, value: string) => {
-    setEditableItems((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
-  };
   const removeItem = (idx: number) => {
     setEditableItems((prev) => prev.filter((_, i) => i !== idx));
+    setEditingIdx(null);
+    setEditDraft(null);
+  };
+
+  // タップ編集
+  const startEdit = (idx: number) => {
+    setEditingIdx(idx);
+    setEditDraft({ ...editableItems[idx] });
+  };
+  const cancelEdit = () => {
+    setEditingIdx(null);
+    setEditDraft(null);
+  };
+  const saveEdit = () => {
+    if (editingIdx === null || !editDraft) return;
+    setEditableItems((prev) => prev.map((item, i) => (i === editingIdx ? editDraft : item)));
+    setEditingIdx(null);
+    setEditDraft(null);
   };
 
   const resetToCapture = () => {
@@ -146,6 +164,8 @@ export default function DeliveryPage() {
     setEditableItems([]);
     setError(null);
     setPageState('capture');
+    setEditingIdx(null);
+    setEditDraft(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -241,75 +261,85 @@ export default function DeliveryPage() {
         {/* ─── 確認・編集画面 ─── */}
         {isReviewing && (
           <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <p className="font-bold text-gray-700">
-                {editableItems.length}件を読み取りました
-              </p>
-              <p className="text-xs text-gray-400">内容を確認・修正してから保存してください</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-bold text-gray-700">{editableItems.length}件を読み取りました</p>
+              <p className="text-xs text-gray-400">間違いはタップして修正</p>
             </div>
 
             {/* ── スマホ: カード ── */}
-            <div className="sm:hidden space-y-3 mb-5">
+            <div className="sm:hidden space-y-2 mb-5">
               {editableItems.map((item, idx) => {
-                const qty = parseFloat(item.quantity);
-                const price = parseFloat(item.totalPrice);
+                const isEditing = editingIdx === idx;
+                const qty = parseFloat(isEditing ? editDraft!.quantity : item.quantity);
+                const price = parseFloat(isEditing ? editDraft!.totalPrice : item.totalPrice);
                 const unitPrice = qty > 0 ? (price / qty).toFixed(2) : '-';
+
+                if (isEditing && editDraft) {
+                  // ── 編集中カード ──
+                  return (
+                    <div key={idx} className="border-2 border-blue-400 rounded-xl p-3 bg-blue-50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          value={editDraft.name}
+                          onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                          autoFocus
+                          placeholder="食材名"
+                          className="flex-1 font-bold text-base border-b-2 border-blue-300 focus:border-blue-500 focus:outline-none bg-transparent"
+                        />
+                        <button onClick={() => removeItem(idx)} className="text-red-300 hover:text-red-500 text-xl leading-none">×</button>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">数量</span>
+                          <input type="number" value={editDraft.quantity}
+                            onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
+                            className="w-16 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white" />
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <span className="text-xs text-gray-500">単位</span>
+                          <input value={editDraft.unit}
+                            onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })}
+                            className="w-14 text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-blue-400 bg-white" />
+                        </label>
+                        <label className="flex items-center gap-1 ml-auto">
+                          <span className="text-xs text-gray-500">¥</span>
+                          <input type="number" value={editDraft.totalPrice}
+                            onChange={(e) => setEditDraft({ ...editDraft, totalPrice: e.target.value })}
+                            className="w-24 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white" />
+                        </label>
+                      </div>
+                      <div className="text-right text-xs text-gray-400 mb-2">単価 ¥{unitPrice}</div>
+                      <div className="flex gap-2">
+                        <button onClick={saveEdit}
+                          className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                          保存
+                        </button>
+                        <button onClick={cancelEdit}
+                          className="px-4 py-1.5 rounded-lg text-sm bg-white border text-gray-500 hover:bg-gray-50">
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── 通常表示カード（タップで編集） ──
                 return (
-                  <div key={idx} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                    {/* 食材名 + 削除 */}
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <input
-                        value={item.name}
-                        onChange={(e) => updateItem(idx, 'name', e.target.value)}
-                        disabled={pageState === 'saving'}
-                        placeholder="食材名"
-                        className="flex-1 font-bold text-base border-b-2 border-transparent focus:border-blue-400 focus:outline-none bg-transparent pb-0.5"
-                      />
-                      <button
-                        onClick={() => removeItem(idx)}
-                        disabled={pageState === 'saving'}
-                        className="text-gray-300 hover:text-red-400 text-xl leading-none disabled:opacity-30"
-                      >
-                        ×
-                      </button>
+                  <button
+                    key={idx}
+                    onClick={() => editingIdx === null && pageState !== 'saving' && startEdit(idx)}
+                    disabled={editingIdx !== null || pageState === 'saving'}
+                    className="w-full text-left bg-gray-50 rounded-xl px-4 py-3 hover:bg-blue-50 active:bg-blue-100 disabled:opacity-60 disabled:cursor-default transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-base">{item.name}</span>
+                      <span className="font-bold text-base">¥{parseFloat(item.totalPrice).toLocaleString()}</span>
                     </div>
-                    {/* 数量・単位・合計金額 */}
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-1">
-                        <span className="text-xs text-gray-400">数量</span>
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                          disabled={pageState === 'saving'}
-                          className="w-16 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100"
-                        />
-                      </label>
-                      <label className="flex items-center gap-1">
-                        <span className="text-xs text-gray-400">単位</span>
-                        <input
-                          value={item.unit}
-                          onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                          disabled={pageState === 'saving'}
-                          className="w-14 text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100"
-                        />
-                      </label>
-                      <label className="flex items-center gap-1 ml-auto">
-                        <span className="text-xs text-gray-400">¥</span>
-                        <input
-                          type="number"
-                          value={item.totalPrice}
-                          onChange={(e) => updateItem(idx, 'totalPrice', e.target.value)}
-                          disabled={pageState === 'saving'}
-                          className="w-24 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100"
-                        />
-                      </label>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-sm text-gray-500">{item.quantity} {item.unit}</span>
+                      <span className="text-xs text-gray-400">単価 ¥{unitPrice}</span>
                     </div>
-                    {/* 単価 */}
-                    <div className="text-right text-xs text-gray-400 mt-1.5">
-                      単価 ¥{unitPrice}
-                    </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -324,61 +354,60 @@ export default function DeliveryPage() {
                     <th className="px-3 py-2 w-16">単位</th>
                     <th className="px-3 py-2 text-right w-28">合計金額</th>
                     <th className="px-3 py-2 text-right w-24 text-gray-400">単価</th>
-                    <th className="px-3 py-2 w-8"></th>
+                    <th className="px-3 py-2 w-16 text-center">修正</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {editableItems.map((item, idx) => {
-                    const qty = parseFloat(item.quantity);
-                    const price = parseFloat(item.totalPrice);
+                    const isEditing = editingIdx === idx;
+                    const qty = parseFloat(isEditing ? editDraft!.quantity : item.quantity);
+                    const price = parseFloat(isEditing ? editDraft!.totalPrice : item.totalPrice);
                     const unitPrice = qty > 0 ? (price / qty).toFixed(2) : '-';
+
                     return (
-                      <tr key={idx} className="hover:bg-gray-50">
+                      <tr key={idx} className={isEditing ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
                         <td className="px-3 py-2">
-                          <input
-                            value={item.name}
-                            onChange={(e) => updateItem(idx, 'name', e.target.value)}
-                            disabled={pageState === 'saving'}
-                            className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent"
-                          />
+                          {isEditing && editDraft ? (
+                            <input autoFocus value={editDraft.name}
+                              onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                              className="w-full border-b border-yellow-400 focus:outline-none bg-transparent" />
+                          ) : item.name}
                         </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                            disabled={pageState === 'saving'}
-                            className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-right"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            value={item.unit}
-                            onChange={(e) => updateItem(idx, 'unit', e.target.value)}
-                            disabled={pageState === 'saving'}
-                            className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-center"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            value={item.totalPrice}
-                            onChange={(e) => updateItem(idx, 'totalPrice', e.target.value)}
-                            disabled={pageState === 'saving'}
-                            className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-right"
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right text-gray-400 text-xs">
-                          ¥{unitPrice}
+                        <td className="px-3 py-2 text-right">
+                          {isEditing && editDraft ? (
+                            <input type="number" value={editDraft.quantity}
+                              onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
+                              className="w-16 border-b border-yellow-400 focus:outline-none bg-transparent text-right" />
+                          ) : item.quantity}
                         </td>
                         <td className="px-3 py-2 text-center">
-                          <button
-                            onClick={() => removeItem(idx)}
-                            disabled={pageState === 'saving'}
-                            className="text-gray-300 hover:text-red-400 disabled:opacity-30"
-                          >
-                            ×
-                          </button>
+                          {isEditing && editDraft ? (
+                            <input value={editDraft.unit}
+                              onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })}
+                              className="w-12 border-b border-yellow-400 focus:outline-none bg-transparent text-center" />
+                          ) : item.unit}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {isEditing && editDraft ? (
+                            <input type="number" value={editDraft.totalPrice}
+                              onChange={(e) => setEditDraft({ ...editDraft, totalPrice: e.target.value })}
+                              className="w-24 border-b border-yellow-400 focus:outline-none bg-transparent text-right" />
+                          ) : `¥${parseFloat(item.totalPrice).toLocaleString()}`}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-400 text-xs">¥{unitPrice}</td>
+                        <td className="px-3 py-2 text-center">
+                          {isEditing ? (
+                            <div className="flex gap-1 justify-center">
+                              <button onClick={saveEdit}
+                                className="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-green-700">保存</button>
+                              <button onClick={cancelEdit}
+                                className="bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs hover:bg-gray-300">取消</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => editingIdx === null && startEdit(idx)}
+                              disabled={editingIdx !== null || pageState === 'saving'}
+                              className="text-gray-300 hover:text-blue-500 disabled:opacity-20 p-1">✏️</button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -388,15 +417,13 @@ export default function DeliveryPage() {
             </div>
 
             {error && (
-              <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">
-                {error}
-              </div>
+              <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">{error}</div>
             )}
 
             <div className="space-y-2">
               <button
                 onClick={handleSave}
-                disabled={pageState === 'saving' || editableItems.length === 0}
+                disabled={pageState === 'saving' || editableItems.length === 0 || editingIdx !== null}
                 className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold text-base hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300"
               >
                 {pageState === 'saving' ? '保存中…' : `✓ ${editableItems.length}件を保存する`}
