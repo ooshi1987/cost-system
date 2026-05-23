@@ -160,82 +160,52 @@ export default function DeliveryHistoryPage() {
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-100 border-b">
+                    <thead className="bg-gray-50 border-b">
                       <tr>
                         <th className="px-3 py-2 text-left">食材名</th>
                         <th className="px-3 py-2 text-right">数量</th>
                         <th className="px-3 py-2 text-left">単位</th>
                         <th className="px-3 py-2 text-right">合計金額</th>
-                        <th className="px-3 py-2 text-right">単価</th>
-                        <th className="px-3 py-2 text-center w-16">修正</th>
+                        {/* 単価はPCのみ表示 */}
+                        <th className="px-3 py-2 text-right hidden sm:table-cell">単価</th>
+                        <th className="px-3 py-2 text-center w-20">修正</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {slip.deliveryItems.map((item) => {
                         const isEditing = editState?.itemId === item.id;
                         const isSaved = savedItemId === item.id;
-                        const unitPrice =
-                          item.quantity > 0
-                            ? (item.totalPrice / item.quantity).toFixed(2)
-                            : '-';
+                        const unitPrice = item.quantity > 0
+                          ? (item.totalPrice / item.quantity).toFixed(2) : '-';
 
                         return (
-                          <tr
-                            key={item.id}
-                            className={`${
-                              isEditing
-                                ? 'bg-yellow-50'
-                                : isSaved
-                                ? 'bg-green-50'
-                                : 'hover:bg-gray-50'
-                            }`}
-                          >
+                          <tr key={item.id}
+                            className={isEditing ? 'bg-yellow-50' : isSaved ? 'bg-green-50' : 'hover:bg-gray-50'}>
+
                             {/* 食材名 */}
-                            <td className="px-3 py-2 font-medium">
-                              {item.ingredient.name}
-                            </td>
+                            <td className="px-3 py-3 font-medium text-sm">{item.ingredient.name}</td>
 
                             {/* 数量 */}
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-3 text-right">
                               {isEditing ? (
-                                <input
-                                  type="number"
-                                  min="0.01"
-                                  step="any"
+                                <input type="number" min="0.01" step="any"
                                   value={editState.quantity}
-                                  onChange={(e) =>
-                                    setEditState({
-                                      ...editState,
-                                      quantity: e.target.value,
-                                    })
-                                  }
-                                  className="w-24 border border-yellow-400 rounded px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                  autoFocus
-                                />
-                              ) : (
-                                item.quantity.toLocaleString()
-                              )}
+                                  onChange={(e) => setEditState({ ...editState, quantity: e.target.value })}
+                                  className="w-20 border border-yellow-400 rounded-lg px-2 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                                  autoFocus />
+                              ) : item.quantity.toLocaleString()}
                             </td>
 
                             {/* 単位 */}
-                            <td className="px-3 py-2">{item.unit}</td>
+                            <td className="px-3 py-3 text-gray-500">{item.unit}</td>
 
                             {/* 合計金額 */}
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-3 py-3 text-right">
                               {isEditing ? (
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="1"
+                                <input type="number" min="0" step="1"
                                   value={editState.totalPrice}
-                                  onChange={(e) =>
-                                    setEditState({
-                                      ...editState,
-                                      totalPrice: e.target.value,
-                                    })
-                                  }
-                                  className="w-28 border border-yellow-400 rounded px-2 py-1 text-right focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                                />
+                                  onChange={(e) => setEditState({ ...editState, totalPrice: e.target.value })}
+                                  className="w-24 border border-yellow-400 rounded-lg px-2 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" />
                               ) : (
                                 <span className={isSaved ? 'text-green-600 font-semibold' : ''}>
                                   ¥{item.totalPrice.toLocaleString()}
@@ -243,51 +213,36 @@ export default function DeliveryHistoryPage() {
                               )}
                             </td>
 
-                            {/* 単価（自動計算） */}
-                            <td className="px-3 py-2 text-right text-gray-500">
+                            {/* 単価（PCのみ） */}
+                            <td className="px-3 py-3 text-right text-gray-400 hidden sm:table-cell">
                               {isEditing ? (
-                                <span className="text-yellow-600">
-                                  ¥
-                                  {editState.quantity && editState.totalPrice
-                                    ? (
-                                        parseFloat(editState.totalPrice) /
-                                        parseFloat(editState.quantity)
-                                      ).toFixed(2)
+                                <span className="text-yellow-600 text-xs">
+                                  ¥{editState.quantity && editState.totalPrice
+                                    ? (parseFloat(editState.totalPrice) / parseFloat(editState.quantity)).toFixed(2)
                                     : '-'}
                                 </span>
-                              ) : (
-                                `¥${unitPrice}`
-                              )}
+                              ) : `¥${unitPrice}`}
                             </td>
 
                             {/* 操作ボタン */}
-                            <td className="px-3 py-2 text-center">
+                            <td className="px-3 py-3 text-center">
                               {isEditing ? (
-                                <div className="flex gap-1 justify-center">
-                                  <button
-                                    onClick={saveEdit}
-                                    disabled={saving}
-                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 disabled:bg-gray-400"
-                                  >
-                                    {saving ? '...' : '保存'}
+                                <div className="flex gap-1.5 justify-center">
+                                  <button onClick={saveEdit} disabled={saving}
+                                    className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:bg-gray-300">
+                                    {saving ? '…' : '保存'}
                                   </button>
-                                  <button
-                                    onClick={cancelEdit}
-                                    disabled={saving}
-                                    className="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
-                                  >
+                                  <button onClick={cancelEdit} disabled={saving}
+                                    className="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-300">
                                     取消
                                   </button>
                                 </div>
                               ) : isSaved ? (
-                                <span className="text-green-600 text-xs font-semibold">✓ 保存済</span>
+                                <span className="text-green-600 text-xs font-semibold">✓</span>
                               ) : (
-                                <button
-                                  onClick={() => startEdit(item)}
-                                  disabled={editState !== null}
-                                  className="text-gray-400 hover:text-blue-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                  title="修正する"
-                                >
+                                <button onClick={() => startEdit(item)} disabled={editState !== null}
+                                  className="text-gray-300 hover:text-blue-500 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1"
+                                  title="修正する">
                                   ✏️
                                 </button>
                               )}

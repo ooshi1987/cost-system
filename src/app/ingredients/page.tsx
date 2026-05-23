@@ -72,19 +72,19 @@ export default function IngredientsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-8">
-        <div className="mb-8">
-          <Link href="/" className="text-blue-600 hover:text-blue-700">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mb-4 sm:mb-6">
+          <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm">
             ← ダッシュボードに戻る
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold mb-8">食材・調味料管理</h1>
+        <h1 className="text-2xl font-bold mb-5 sm:text-4xl sm:mb-8">食材・調味料管理</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-8">
           {/* Add Ingredient Form */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-bold mb-4">新規食材登録</h2>
+          <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+            <h2 className="text-lg font-bold mb-4 sm:text-2xl">新規食材登録</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-2">食材名</label>
@@ -135,8 +135,8 @@ export default function IngredientsPage() {
 
           {/* Ingredients List */}
           <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-2xl font-bold mb-4">登録済み食材（{ingredients.length}件）</h2>
+            <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+              <h2 className="text-lg font-bold mb-4 sm:text-2xl">登録済み食材（{ingredients.length}件）</h2>
               {ingredients.length === 0 ? (
                 <p className="text-gray-500">食材がまだ登録されていません</p>
               ) : (

@@ -248,18 +248,74 @@ export default function MenuPage() {
             <>
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm text-gray-500">
-                  「{fileName}」から <span className="font-bold text-gray-800">{extractedItems.length}件</span> を検出
+                  <span className="font-bold text-gray-800">{extractedItems.length}件</span> を検出
                 </div>
                 {importStep === 'preview' && (
-                  <div className="flex gap-2 text-sm">
-                    <button onClick={() => toggleAll(true)} className="text-blue-600 hover:underline">全選択</button>
-                    <span className="text-gray-300">|</span>
-                    <button onClick={() => toggleAll(false)} className="text-gray-500 hover:underline">全解除</button>
+                  <div className="flex gap-3 text-sm">
+                    <button onClick={() => toggleAll(true)} className="text-blue-600 font-medium">全選択</button>
+                    <button onClick={() => toggleAll(false)} className="text-gray-400">全解除</button>
                   </div>
                 )}
               </div>
 
-              <div className="border rounded-lg overflow-hidden mb-4">
+              {/* ── スマホ: カードリスト ── */}
+              <div className="sm:hidden space-y-2 mb-4">
+                {extractedItems.map((item, i) => {
+                  const isDuplicate = item.status === 'duplicate';
+                  return (
+                    <div key={i}
+                      className={`border rounded-xl p-3 ${
+                        isDuplicate ? 'opacity-40 bg-gray-50' :
+                        item.status === 'saved' ? 'border-green-300 bg-green-50' :
+                        item.status === 'error' ? 'border-red-300 bg-red-50' :
+                        item.selected ? 'border-blue-200 bg-white' : 'bg-gray-50'
+                      }`}>
+                      <div className="flex items-start gap-3">
+                        <input type="checkbox"
+                          checked={item.selected && !isDuplicate}
+                          disabled={isDuplicate || importStep !== 'preview'}
+                          onChange={() => toggleItem(i)}
+                          className="mt-1 w-5 h-5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          {importStep === 'preview' ? (
+                            <>
+                              <input type="text" value={item.name}
+                                onChange={(e) => updateExtractedItem(i, 'name', e.target.value)}
+                                className="w-full font-semibold text-sm border-b border-transparent focus:border-blue-400 focus:outline-none bg-transparent mb-2" />
+                              <div className="flex gap-2">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-gray-400">¥</span>
+                                  <input type="number" value={item.sellingPrice}
+                                    onChange={(e) => updateExtractedItem(i, 'sellingPrice', parseFloat(e.target.value))}
+                                    className="w-20 text-sm border rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400" />
+                                </div>
+                                <input type="text" value={item.category}
+                                  onChange={(e) => updateExtractedItem(i, 'category', e.target.value)}
+                                  className="flex-1 text-xs border rounded-lg px-2 py-1 text-gray-500 focus:outline-none focus:border-blue-400" />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="font-semibold text-sm">{item.name}</div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                ¥{item.sellingPrice.toLocaleString()} · {item.category}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs flex-shrink-0">
+                          {isDuplicate && <span className="text-gray-400">登録済</span>}
+                          {item.status === 'saved' && <span className="text-green-600 font-bold">✓</span>}
+                          {item.status === 'error' && <span className="text-red-500">エラー</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── PC: テーブル ── */}
+              <div className="hidden sm:block border rounded-xl overflow-hidden mb-4">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 border-b">
                     <tr>
@@ -272,80 +328,39 @@ export default function MenuPage() {
                   </thead>
                   <tbody className="divide-y">
                     {extractedItems.map((item, i) => (
-                      <tr
-                        key={i}
-                        className={`${
-                          item.status === 'duplicate'
-                            ? 'bg-gray-50 opacity-50'
-                            : item.status === 'saved'
-                            ? 'bg-green-50'
-                            : item.status === 'error'
-                            ? 'bg-red-50'
-                            : item.selected
-                            ? 'bg-white'
-                            : 'bg-gray-50 opacity-60'
-                        }`}
-                      >
+                      <tr key={i}
+                        className={
+                          item.status === 'duplicate' ? 'bg-gray-50 opacity-50' :
+                          item.status === 'saved' ? 'bg-green-50' :
+                          item.status === 'error' ? 'bg-red-50' :
+                          item.selected ? 'bg-white' : 'bg-gray-50 opacity-60'
+                        }>
                         <td className="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
+                          <input type="checkbox"
                             checked={item.selected && item.status !== 'duplicate'}
                             disabled={item.status === 'duplicate' || importStep !== 'preview'}
-                            onChange={() => toggleItem(i)}
-                            className="w-4 h-4"
-                          />
+                            onChange={() => toggleItem(i)} className="w-4 h-4" />
                         </td>
                         <td className="px-3 py-2">
-                          {importStep === 'preview' ? (
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => updateExtractedItem(i, 'name', e.target.value)}
-                              className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent"
-                            />
-                          ) : (
-                            <span>{item.name}</span>
-                          )}
+                          {importStep === 'preview'
+                            ? <input type="text" value={item.name} onChange={(e) => updateExtractedItem(i, 'name', e.target.value)} className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent" />
+                            : <span>{item.name}</span>}
                         </td>
                         <td className="px-3 py-2 text-right">
-                          {importStep === 'preview' ? (
-                            <input
-                              type="number"
-                              value={item.sellingPrice}
-                              onChange={(e) =>
-                                updateExtractedItem(i, 'sellingPrice', parseFloat(e.target.value))
-                              }
-                              className="w-20 border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-right"
-                            />
-                          ) : (
-                            <span>¥{item.sellingPrice.toLocaleString()}</span>
-                          )}
+                          {importStep === 'preview'
+                            ? <input type="number" value={item.sellingPrice} onChange={(e) => updateExtractedItem(i, 'sellingPrice', parseFloat(e.target.value))} className="w-20 border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-right" />
+                            : <span>¥{item.sellingPrice.toLocaleString()}</span>}
                         </td>
                         <td className="px-3 py-2">
-                          {importStep === 'preview' ? (
-                            <input
-                              type="text"
-                              value={item.category}
-                              onChange={(e) => updateExtractedItem(i, 'category', e.target.value)}
-                              className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-sm"
-                            />
-                          ) : (
-                            <span className="text-gray-600">{item.category}</span>
-                          )}
+                          {importStep === 'preview'
+                            ? <input type="text" value={item.category} onChange={(e) => updateExtractedItem(i, 'category', e.target.value)} className="w-full border-b border-transparent hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent text-sm" />
+                            : <span className="text-gray-600">{item.category}</span>}
                         </td>
                         <td className="px-3 py-2 text-center text-xs">
-                          {item.status === 'duplicate' && (
-                            <span className="text-gray-400">登録済</span>
-                          )}
-                          {item.status === 'saved' && (
-                            <span className="text-green-600 font-semibold">✓ 完了</span>
-                          )}
-                          {item.status === 'error' && (
-                            <span className="text-red-500">エラー</span>
-                          )}
-                          {item.status === 'pending' && importStep === 'saving' && (
-                            <span className="text-gray-400">待機中</span>
-                          )}
+                          {item.status === 'duplicate' && <span className="text-gray-400">登録済</span>}
+                          {item.status === 'saved' && <span className="text-green-600 font-semibold">✓ 完了</span>}
+                          {item.status === 'error' && <span className="text-red-500">エラー</span>}
+                          {item.status === 'pending' && importStep === 'saving' && <span className="text-gray-400">…</span>}
                         </td>
                       </tr>
                     ))}
@@ -355,35 +370,26 @@ export default function MenuPage() {
 
               {importStep === 'preview' && (
                 <div className="flex gap-3">
-                  <button
-                    onClick={handleImportSave}
-                    disabled={selectedCount === 0}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:bg-gray-300"
-                  >
+                  <button onClick={handleImportSave} disabled={selectedCount === 0}
+                    className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300">
                     {selectedCount}件を登録する
                   </button>
-                  <button
-                    onClick={resetImport}
-                    className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50"
-                  >
-                    キャンセル
+                  <button onClick={resetImport}
+                    className="px-4 py-2.5 border rounded-xl text-gray-600 hover:bg-gray-50 active:bg-gray-100">
+                    取消
                   </button>
                 </div>
               )}
-
               {importStep === 'saving' && (
                 <div className="text-center py-2 text-blue-600 font-semibold">登録中...</div>
               )}
-
               {importStep === 'done' && (
                 <div className="flex gap-3">
-                  <div className="flex-1 bg-green-50 border border-green-200 rounded p-3 text-center text-green-700 font-semibold">
+                  <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-3 text-center text-green-700 font-semibold text-sm">
                     ✅ {extractedItems.filter((i) => i.status === 'saved').length}件の登録が完了しました
                   </div>
-                  <button
-                    onClick={resetImport}
-                    className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50"
-                  >
+                  <button onClick={resetImport}
+                    className="px-4 py-2 border rounded-xl text-gray-600 hover:bg-gray-50">
                     閉じる
                   </button>
                 </div>
@@ -393,9 +399,9 @@ export default function MenuPage() {
         </div>
 
         {/* ===== 手動登録 + 登録済みリスト ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">✏️ 手動で1件登録</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+            <h2 className="text-base font-bold mb-4 sm:text-xl">✏️ 手動で1件登録</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold mb-1">商品名</label>
@@ -439,8 +445,8 @@ export default function MenuPage() {
             </form>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">登録済みメニュー（{menuItems.length}件）</h2>
+          <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+            <h2 className="text-base font-bold mb-4 sm:text-xl">登録済みメニュー（{menuItems.length}件）</h2>
             {menuItems.length === 0 ? (
               <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
             ) : (
@@ -449,7 +455,7 @@ export default function MenuPage() {
                   <Link
                     key={item.id}
                     href={`/menu/${item.id}/recipe`}
-                    className="block p-3 border rounded hover:bg-gray-50 transition"
+                    className="block p-3 border rounded-lg hover:bg-gray-50 active:bg-gray-100 transition"
                   >
                     <div className="font-semibold text-sm">{item.name}</div>
                     <div className="text-xs text-gray-600">
