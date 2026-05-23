@@ -580,9 +580,24 @@ export default function MenuPage() {
 
         {/* ===== 登録済みメニュー（全幅・大） ===== */}
         <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-          <div className="flex items-baseline gap-2 mb-4">
-            <h2 className="text-base font-bold sm:text-xl">登録済みメニュー</h2>
-            <span className="text-sm text-gray-400">{menuItems.length}件</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-base font-bold sm:text-xl">登録済みメニュー</h2>
+              <span className="text-sm text-gray-400">{menuItems.length}件</span>
+            </div>
+            {menuItems.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (!confirm(`登録済みの${menuItems.length}件をすべて削除しますか？\nレシピ情報もすべて削除されます。`)) return;
+                  await fetch('/api/menu-items', { method: 'DELETE' });
+                  await fetchMenuItems();
+                  setSelectedCategory(null);
+                }}
+                className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 hover:border-red-300 transition"
+              >
+                全件削除
+              </button>
+            )}
           </div>
 
           {menuItems.length === 0 ? (

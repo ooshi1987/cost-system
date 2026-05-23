@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export async function DELETE() {
+  try {
+    await prisma.menuItem.deleteMany({});
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: '削除に失敗しました' }, { status: 500 });
+  }
+}
+
 export async function GET() {
   try {
     const menuItems = await prisma.menuItem.findMany({
