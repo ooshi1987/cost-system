@@ -32,6 +32,46 @@ export default function MenuPage() {
   const [formData, setFormData] = useState({ name: '', sellingPrice: '', category: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // 登録済みメニュー編集
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{ name: string; sellingPrice: string; category: string } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const startEdit = (item: MenuItem) => {
+    setEditingId(item.id);
+    setEditDraft({ name: item.name, sellingPrice: String(item.sellingPrice), category: item.category || '' });
+  };
+  const cancelEdit = () => { setEditingId(null); setEditDraft(null); };
+
+  const saveEdit = async () => {
+    if (!editingId || !editDraft) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/menu-items/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editDraft.name,
+          sellingPrice: parseFloat(editDraft.sellingPrice),
+          category: editDraft.category || null,
+        }),
+      });
+      if (!res.ok) throw new Error('更新失敗');
+      await fetchMenuItems();
+      cancelEdit();
+    } catch { alert('更新に失敗しました'); }
+    finally { setEditSaving(false); }
+  };
+
+  const deleteItem = async (id: string) => {
+    if (!confirm('この商品を削除しますか？レシピ情報も削除されます。')) return;
+    try {
+      await fetch(`/api/menu-items/${id}`, { method: 'DELETE' });
+      await fetchMenuItems();
+      if (editingId === id) cancelEdit();
+    } catch { alert('削除に失敗しました'); }
+  };
+
   // PDFインポート
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStep, setImportStep] = useState<ImportStep>('idle');
@@ -475,78 +515,133 @@ export default function MenuPage() {
           )}
         </div>
 
-        {/* ===== 手動登録 + 登録済みリスト ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-            <h2 className="text-base font-bold mb-4 sm:text-xl">✏️ 手動で1件登録</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1">商品名</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="例：鶏ニラ炒め"
-                  className="w-full border rounded px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">販売価格（円）</label>
-                <input
-                  type="number"
-                  value={formData.sellingPrice}
-                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                  placeholder="例：800"
-                  className="w-full border rounded px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">カテゴリー（任意）</label>
-                <input
-                  type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="例：豚肉料理"
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
+        {/* ===== 手動登録（コンパクト横並び） ===== */}
+        <div className="bg-white rounded-xl shadow p-4 sm:p-5 mb-4 sm:mb-6">
+          <h2 className="text-sm font-bold mb-3 text-gray-600">✏️ 手動で1件追加</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="商品名"
+                className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                required
+              />
+              <input
+                type="number"
+                value={formData.sellingPrice}
+                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                placeholder="販売価格（円）"
+                className="w-full sm:w-36 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                required
+              />
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="カテゴリー（任意）"
+                className="w-full sm:w-36 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              />
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+                className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 whitespace-nowrap"
               >
-                {submitting ? '登録中...' : '登録する'}
+                {submitting ? '登録中…' : '登録する'}
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
+        </div>
 
-          <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-            <h2 className="text-base font-bold mb-4 sm:text-xl">登録済みメニュー（{menuItems.length}件）</h2>
-            {menuItems.length === 0 ? (
-              <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
-            ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/menu/${item.id}/recipe`}
-                    className="block p-3 border rounded-lg hover:bg-gray-50 active:bg-gray-100 transition"
-                  >
-                    <div className="font-semibold text-sm">{item.name}</div>
-                    <div className="text-xs text-gray-600">
-                      ¥{item.sellingPrice.toLocaleString()}
-                      {item.category && ` • ${item.category}`}
+        {/* ===== 登録済みメニュー（全幅・大） ===== */}
+        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+          <h2 className="text-base font-bold mb-4 sm:text-xl">
+            登録済みメニュー
+            <span className="ml-2 text-sm font-normal text-gray-400">{menuItems.length}件</span>
+          </h2>
+
+          {menuItems.length === 0 ? (
+            <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {menuItems.map((item) => {
+                const isEditing = editingId === item.id;
+
+                if (isEditing && editDraft) {
+                  return (
+                    <div key={item.id} className="border-2 border-blue-400 rounded-xl p-4 bg-blue-50">
+                      <div className="space-y-2 mb-3">
+                        <input
+                          autoFocus
+                          value={editDraft.name}
+                          onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                          className="w-full font-bold text-base border-b-2 border-blue-300 focus:border-blue-500 focus:outline-none bg-transparent"
+                          placeholder="商品名"
+                        />
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm text-gray-400">¥</span>
+                          <input
+                            type="number"
+                            value={editDraft.sellingPrice}
+                            onChange={(e) => setEditDraft({ ...editDraft, sellingPrice: e.target.value })}
+                            className="w-28 border rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:border-blue-400 bg-white"
+                          />
+                        </div>
+                        <input
+                          value={editDraft.category}
+                          onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value })}
+                          placeholder="カテゴリー"
+                          className="w-full text-sm border rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400 bg-white"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={saveEdit} disabled={editSaving}
+                          className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-300">
+                          {editSaving ? '…' : '保存'}
+                        </button>
+                        <button onClick={cancelEdit} disabled={editSaving}
+                          className="px-3 py-1.5 rounded-lg text-sm border bg-white text-gray-600 hover:bg-gray-50">
+                          取消
+                        </button>
+                        <button onClick={() => deleteItem(item.id)} disabled={editSaving}
+                          className="px-2 py-1.5 rounded-lg text-sm text-red-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-30">
+                          🗑️
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      レシピ {item.recipeItems.length}件
+                  );
+                }
+
+                return (
+                  <div key={item.id} className="border rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition group">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link href={`/menu/${item.id}/recipe`} className="flex-1 min-w-0">
+                        <div className="font-bold text-base mb-1 truncate">{item.name}</div>
+                        <div className="text-lg font-semibold text-blue-600">
+                          ¥{item.sellingPrice.toLocaleString()}
+                        </div>
+                        {item.category && (
+                          <div className="text-xs text-gray-400 mt-1">{item.category}</div>
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">
+                          レシピ {item.recipeItems.length}件
+                        </div>
+                      </Link>
+                      <button
+                        onClick={() => startEdit(item)}
+                        disabled={editingId !== null}
+                        className="text-gray-300 hover:text-blue-500 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors"
+                        title="編集"
+                      >
+                        ✏️
+                      </button>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
