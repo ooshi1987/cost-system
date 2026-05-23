@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 
 interface MenuItem {
@@ -31,6 +31,28 @@ export default function MenuPage() {
   // 手動登録フォーム
   const [formData, setFormData] = useState({ name: '', sellingPrice: '', category: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  // カテゴリーフィルター
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = {};
+    menuItems.forEach((item) => {
+      const cat = item.category || 'その他';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1]) // 件数が多い順
+      .map(([name, count]) => ({ name, count }));
+  }, [menuItems]);
+
+  const displayedItems = useMemo(
+    () =>
+      selectedCategory
+        ? menuItems.filter((item) => (item.category || 'その他') === selectedCategory)
+        : menuItems,
+    [menuItems, selectedCategory]
+  );
 
   // 登録済みメニュー編集
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -556,16 +578,44 @@ export default function MenuPage() {
 
         {/* ===== 登録済みメニュー（全幅・大） ===== */}
         <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-          <h2 className="text-base font-bold mb-4 sm:text-xl">
-            登録済みメニュー
-            <span className="ml-2 text-sm font-normal text-gray-400">{menuItems.length}件</span>
-          </h2>
+          <div className="flex items-baseline gap-2 mb-4">
+            <h2 className="text-base font-bold sm:text-xl">登録済みメニュー</h2>
+            <span className="text-sm text-gray-400">{menuItems.length}件</span>
+          </div>
 
           {menuItems.length === 0 ? (
             <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
           ) : (
+            <>
+              {/* ── カテゴリーフィルター ── */}
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-1 px-1">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                    selectedCategory === null
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  全て ({menuItems.length})
+                </button>
+                {categories.map(({ name, count }) => (
+                  <button
+                    key={name}
+                    onClick={() => setSelectedCategory(selectedCategory === name ? null : name)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                      selectedCategory === name
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {name} ({count})
+                  </button>
+                ))}
+              </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {menuItems.map((item) => {
+              {displayedItems.map((item) => {
                 const isEditing = editingId === item.id;
 
                 if (isEditing && editDraft) {
@@ -641,6 +691,7 @@ export default function MenuPage() {
                 );
               })}
             </div>
+            </>
           )}
         </div>
       </div>
