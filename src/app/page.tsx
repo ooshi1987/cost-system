@@ -121,7 +121,13 @@ export default function Dashboard() {
         )}
 
         {/* ショートカット */}
-        <div className="mt-4 sm:mt-8 grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="mt-4 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <Link href="/menu"
+            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
+            <div className="text-2xl mb-2">📋</div>
+            <div className="font-semibold text-sm sm:text-base">商品一覧</div>
+            <div className="text-gray-500 text-xs mt-1">メニューの登録・インポート</div>
+          </Link>
           <Link href="/ingredients"
             className="bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
             <div className="text-2xl mb-2">🥘</div>
@@ -129,7 +135,7 @@ export default function Dashboard() {
             <div className="text-gray-500 text-xs mt-1">食材の原価を確認・編集</div>
           </Link>
           <Link href="/delivery-history"
-            className="bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
+            className="col-span-2 sm:col-span-1 bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition active:bg-gray-50">
             <div className="text-2xl mb-2">📦</div>
             <div className="font-semibold text-sm sm:text-base">納品履歴</div>
             <div className="text-gray-500 text-xs mt-1">過去の納品書を確認・修正</div>
