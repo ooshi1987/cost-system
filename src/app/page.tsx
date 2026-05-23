@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const NAV_ITEMS = [
   {
@@ -28,13 +31,29 @@ const NAV_ITEMS = [
 ];
 
 export default function Dashboard() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-xl mx-auto px-4 py-6 sm:py-10">
 
         {/* ヘッダー */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl font-bold sm:text-3xl mb-4">原価管理システム</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold sm:text-3xl">原価管理システム</h1>
+            <button
+              onClick={handleLogout}
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100"
+            >
+              ログアウト
+            </button>
+          </div>
           <Link
             href="/delivery"
             className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-2xl text-base font-bold hover:bg-blue-700 active:bg-blue-800 shadow"
