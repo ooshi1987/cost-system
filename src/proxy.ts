@@ -15,7 +15,7 @@ const PUBLIC_PATHS = [
   '/sw.js',
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 公開パスはスルー
