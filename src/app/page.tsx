@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import StoreSelector from '@/components/StoreSelector';
 
 interface Stats {
   menuItemCount: number;
@@ -75,7 +76,7 @@ export default function Dashboard() {
       <div className="max-w-xl mx-auto px-4 pt-6 pb-4">
 
         {/* ヘッダー */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">Restaurant</p>
             <h1 className="text-xl font-bold text-gray-800 leading-tight">原価管理システム</h1>
@@ -86,6 +87,10 @@ export default function Dashboard() {
           >
             ログアウト
           </button>
+        </div>
+        {/* 店舗切替（tenant_admin かつ複数店舗時のみ表示） */}
+        <div className="mb-4">
+          <StoreSelector />
         </div>
 
         {/* KPIカード */}
