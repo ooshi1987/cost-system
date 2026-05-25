@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAuth, TRIAL_LIMITS, isPaidPlan } from '@/lib/auth';
+import { getAuth } from '@/lib/auth';
+import { getPlan } from '@/lib/stripe';
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,15 +33,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'name, unit, costPerUnit は必須です' }, { status: 400 });
     }
 
-    // ── トライアル制限チェック ──
-    const tenant = await prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { subscriptionStatus: true } });
-    if (!isPaidPlan(tenant?.subscriptionStatus)) {
+    // ── プラン制限チェック ──
+    const tenant = await prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { plan: true } });
+    const plan = getPlan(tenant?.plan);
+    if (plan.ingredients !== Infinity) {
       const count = await prisma.ingredient.count({ where: { storeId: auth.storeId } });
-      if (count >= TRIAL_LIMITS.ingredients) {
+      if (count >= plan.ingredients) {
         return NextResponse.json({
           error: 'TRIAL_LIMIT',
-          message: `無料プランでは食材・調味料は${TRIAL_LIMITS.ingredients}種まで登録できます。`,
-          limit: TRIAL_LIMITS.ingredients,
+          message: `${plan.name}プランでは食材・調味料は${plan.ingredients}種まで登録できます。`,
+          limit: plan.ingredients,
         }, { status: 403 });
       }
     }

@@ -6,13 +6,30 @@ import { Suspense } from 'react';
 
 interface BillingInfo {
   subscriptionStatus: string | null;
+  plan: string;
+  planName: string;
   storeCount: number;
-  trialUsage: {
-    menuItems: { used: number; limit: number };
-    ingredients: { used: number; limit: number };
+  usage: {
+    menuItems:   { used: number; limit: number | null };
+    ingredients: { used: number; limit: number | null };
   };
-  monthlyTotal: number;
-  pricePerStore: number;
+}
+
+function UsageBar({ used, limit }: { used: number; limit: number | null }) {
+  if (limit === null) return <p className="text-xs text-green-600 font-medium">無制限</p>;
+  const pct = Math.min((used / limit) * 100, 100);
+  const over = used >= limit;
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className={over ? 'text-red-500 font-bold' : 'text-gray-500'}>{used} / {limit}</span>
+        {over && <span className="text-red-500 font-bold">上限到達</span>}
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${over ? 'bg-red-400' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function BillingContent() {
@@ -20,7 +37,7 @@ function BillingContent() {
   const searchParams = useSearchParams();
   const [info, setInfo] = useState<BillingInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [redirecting, setRedirecting] = useState(false);
+  const [redirecting, setRedirecting] = useState<string | null>(null);
   const [error, setError] = useState('');
   const success = searchParams.get('success') === '1';
 
@@ -31,21 +48,25 @@ function BillingContent() {
     });
   }, []);
 
-  const startCheckout = async () => {
-    setRedirecting(true); setError('');
-    const res = await fetch('/api/billing/checkout', { method: 'POST' });
+  const startCheckout = async (planId: 'basic' | 'pro') => {
+    setRedirecting(planId); setError('');
+    const res = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planId }),
+    });
     if (res.ok) {
       const { url } = await res.json();
       window.location.href = url;
     } else {
       const d = await res.json();
       setError(d.error ?? '決済ページを開けませんでした');
-      setRedirecting(false);
+      setRedirecting(null);
     }
   };
 
   const openPortal = async () => {
-    setRedirecting(true); setError('');
+    setRedirecting('portal'); setError('');
     const res = await fetch('/api/billing/portal', { method: 'POST' });
     if (res.ok) {
       const { url } = await res.json();
@@ -53,10 +74,11 @@ function BillingContent() {
     } else {
       const d = await res.json();
       setError(d.error ?? 'ポータルを開けませんでした');
-      setRedirecting(false);
+      setRedirecting(null);
     }
   };
 
+  const currentPlan = info?.plan ?? 'free';
   const isPaid = info?.subscriptionStatus === 'active';
   const isPastDue = info?.subscriptionStatus === 'past_due';
 
@@ -67,144 +89,132 @@ function BillingContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="max-w-xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push('/admin')} className="text-amber-600 text-sm">← 戻る</button>
+          <button onClick={() => router.push('/')} className="text-amber-600 text-sm">← 戻る</button>
           <h1 className="text-xl font-bold">プラン・請求</h1>
         </div>
 
         {success && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 text-green-700 text-sm">
-            🎉 サブスクリプションを開始しました！ご利用ありがとうございます。
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 text-green-700 text-sm font-medium">
+            🎉 プランを開始しました！ご利用ありがとうございます。
+          </div>
+        )}
+        {isPastDue && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 text-red-600 text-sm font-medium">
+            ⚠️ お支払いに問題があります。請求ポータルから確認してください。
           </div>
         )}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 text-red-600 text-sm">{error}</div>
         )}
 
-        {/* 現在のプラン */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
-          <h2 className="font-bold text-base mb-4">📋 現在のプラン</h2>
-
-          {isPaid ? (
-            <div className="flex items-center gap-3 mb-4">
-              <span className="bg-amber-100 text-amber-700 text-sm font-bold px-3 py-1.5 rounded-full">
-                ✅ 有料プラン（アクティブ）
-              </span>
+        {/* 現在の使用状況 */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-base">現在のプラン</h2>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+              currentPlan === 'pro'   ? 'bg-purple-100 text-purple-700' :
+              currentPlan === 'basic' ? 'bg-amber-100 text-amber-700'  :
+                                        'bg-gray-100 text-gray-600'
+            }`}>
+              {currentPlan === 'pro' ? '⭐ Pro' : currentPlan === 'basic' ? '✅ Basic' : '🆓 無料'}
+            </span>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">🍽 メニュー品目</p>
+              <UsageBar used={info?.usage.menuItems.used ?? 0} limit={info?.usage.menuItems.limit ?? 10} />
             </div>
-          ) : isPastDue ? (
-            <div className="flex items-center gap-3 mb-4">
-              <span className="bg-red-100 text-red-700 text-sm font-bold px-3 py-1.5 rounded-full">
-                ⚠️ 支払い遅延
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 mb-4">
-              <span className="bg-gray-100 text-gray-600 text-sm font-bold px-3 py-1.5 rounded-full">
-                🆓 トライアル中
-              </span>
-            </div>
-          )}
-
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">店舗数</span>
-              <span className="font-semibold">{info?.storeCount ?? 0}店舗</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">単価</span>
-              <span className="font-semibold">¥{(info?.pricePerStore ?? 3000).toLocaleString()} / 店舗 / 月</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between text-sm font-bold">
-              <span>合計（税別）</span>
-              <span className="text-amber-600">¥{(info?.monthlyTotal ?? 0).toLocaleString()} / 月</span>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">🥦 食材・調味料</p>
+              <UsageBar used={info?.usage.ingredients.used ?? 0} limit={info?.usage.ingredients.limit ?? 20} />
             </div>
           </div>
         </div>
 
-        {/* トライアル使用状況（未課金のみ） */}
-        {!isPaid && info && (
-          <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
-            <h2 className="font-bold text-base mb-4">📊 トライアル使用状況</h2>
-            <p className="text-xs text-gray-400 mb-3">
-              トライアル中は店舗ごとにメニュー {info.trialUsage.menuItems.limit}件・食材 {info.trialUsage.ingredients.limit}件まで無料でご利用いただけます。
-            </p>
-
-            {/* メニュー */}
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-gray-600 font-medium">🍽 メニュー品目</span>
-                <span className={`font-semibold ${info.trialUsage.menuItems.used >= info.trialUsage.menuItems.limit ? 'text-red-500' : 'text-gray-700'}`}>
-                  {info.trialUsage.menuItems.used} / {info.trialUsage.menuItems.limit}件
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${info.trialUsage.menuItems.used >= info.trialUsage.menuItems.limit ? 'bg-red-400' : 'bg-amber-400'}`}
-                  style={{ width: `${Math.min((info.trialUsage.menuItems.used / info.trialUsage.menuItems.limit) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* 食材 */}
-            <div>
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-gray-600 font-medium">🥦 食材・調味料</span>
-                <span className={`font-semibold ${info.trialUsage.ingredients.used >= info.trialUsage.ingredients.limit ? 'text-red-500' : 'text-gray-700'}`}>
-                  {info.trialUsage.ingredients.used} / {info.trialUsage.ingredients.limit}件
-                </span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${info.trialUsage.ingredients.used >= info.trialUsage.ingredients.limit ? 'bg-red-400' : 'bg-green-400'}`}
-                  style={{ width: `${Math.min((info.trialUsage.ingredients.used / info.trialUsage.ingredients.limit) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
+        {/* 有料プランのポータル */}
+        {isPaid && (
+          <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
+            <h2 className="font-bold text-base mb-2">💳 お支払い管理</h2>
+            <p className="text-sm text-gray-500 mb-4">請求書・支払い方法の変更・解約は Stripe ポータルで行えます。</p>
+            <button
+              onClick={openPortal}
+              disabled={!!redirecting}
+              className="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-300 transition-colors"
+            >
+              {redirecting === 'portal' ? '移動中…' : '請求ポータルを開く →'}
+            </button>
           </div>
         )}
 
-        {/* アクションボタン */}
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          {isPaid || isPastDue ? (
-            <>
-              <h2 className="font-bold text-base mb-3">💳 お支払い管理</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                請求書の確認・支払い方法の変更・プランのキャンセルは Stripe ポータルで行えます。
-              </p>
-              <button
-                onClick={openPortal}
-                disabled={redirecting}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors"
-              >
-                {redirecting ? '移動中…' : '請求ポータルを開く →'}
-              </button>
-            </>
-          ) : (
-            <>
-              <h2 className="font-bold text-base mb-2">🚀 有料プランへアップグレード</h2>
-              <p className="text-sm text-gray-500 mb-1">品目数の制限がなくなり、全機能が無制限で使えます。</p>
-              <ul className="text-sm text-gray-500 mb-4 space-y-1">
-                <li>✅ メニュー品目・食材の登録が無制限</li>
-                <li>✅ 複数店舗のデータを一元管理</li>
-                <li>✅ 全スキャン・原価計算機能が無制限</li>
-              </ul>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                <p className="text-amber-700 text-sm font-semibold">
-                  {info?.storeCount ?? 1}店舗 × ¥{(info?.pricePerStore ?? 3000).toLocaleString()} = <span className="text-base">月額 ¥{(info?.monthlyTotal ?? 3000).toLocaleString()}</span>（税別）
-                </p>
+        {/* プラン比較カード */}
+        {!isPaid && (
+          <div className="space-y-3">
+            <h2 className="font-bold text-base px-1">プランを選択</h2>
+
+            {/* Basic */}
+            <div className={`bg-white rounded-2xl shadow-sm p-5 border-2 ${currentPlan === 'basic' ? 'border-amber-400' : 'border-transparent'}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="font-bold text-lg">Basic</p>
+                  <p className="text-gray-400 text-xs">個人店・1店舗向け</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-amber-600">¥1,980</p>
+                  <p className="text-xs text-gray-400">/ 月（税別）</p>
+                </div>
               </div>
-              <button
-                onClick={startCheckout}
-                disabled={redirecting}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors shadow-lg shadow-amber-200"
-              >
-                {redirecting ? '決済ページへ移動中…' : '今すぐアップグレード →'}
-              </button>
-            </>
-          )}
-        </div>
+              <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
+                <li>✅ メニュー品目・食材 <strong>無制限</strong></li>
+                <li>✅ 全スキャン・原価計算機能</li>
+                <li>✅ 1店舗</li>
+              </ul>
+              {currentPlan !== 'basic' && currentPlan !== 'pro' && (
+                <button
+                  onClick={() => startCheckout('basic')}
+                  disabled={!!redirecting}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors shadow-md shadow-amber-100"
+                >
+                  {redirecting === 'basic' ? '決済ページへ移動中…' : 'Basicプランを始める →'}
+                </button>
+              )}
+            </div>
+
+            {/* Pro */}
+            <div className={`bg-white rounded-2xl shadow-sm p-5 border-2 ${currentPlan === 'pro' ? 'border-purple-400' : 'border-transparent'} relative`}>
+              <div className="absolute -top-3 left-4">
+                <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">多店舗おすすめ</span>
+              </div>
+              <div className="flex items-start justify-between mb-3 mt-1">
+                <div>
+                  <p className="font-bold text-lg">Pro</p>
+                  <p className="text-gray-400 text-xs">多店舗展開・チェーン向け</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-purple-600">¥4,980</p>
+                  <p className="text-xs text-gray-400">/ 月（税別）</p>
+                </div>
+              </div>
+              <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
+                <li>✅ メニュー品目・食材 <strong>無制限</strong></li>
+                <li>✅ 全スキャン・原価計算機能</li>
+                <li>✅ 店舗数 <strong>無制限</strong></li>
+                <li>✅ スタッフアカウント追加</li>
+              </ul>
+              {currentPlan !== 'pro' && (
+                <button
+                  onClick={() => startCheckout('pro')}
+                  disabled={!!redirecting}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors shadow-md shadow-purple-100"
+                >
+                  {redirecting === 'pro' ? '決済ページへ移動中…' : 'Proプランを始める →'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

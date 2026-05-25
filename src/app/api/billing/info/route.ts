@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAuth, TRIAL_LIMITS } from '@/lib/auth';
-import { PRICE_PER_STORE_JPY } from '@/lib/stripe';
+import { getAuth } from '@/lib/auth';
+import { getPlan } from '@/lib/stripe';
 
 export async function GET(request: NextRequest) {
   const auth = await getAuth(request);
   if (!auth || auth.role !== 'tenant_admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const [tenant, storeCount] = await Promise.all([
-    prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { subscriptionStatus: true } }),
+    prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { subscriptionStatus: true, plan: true } }),
     prisma.store.count({ where: { tenantId: auth.tenantId } }),
   ]);
 
-  // トライアル時: 現在のストアの使用量を返す（storeIdがある場合のみ）
+  const plan = getPlan(tenant?.plan);
+
   let menuItemsUsed = 0;
   let ingredientsUsed = 0;
   if (auth.storeId) {
@@ -24,12 +25,12 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     subscriptionStatus: tenant?.subscriptionStatus ?? null,
+    plan: plan.id,
+    planName: plan.name,
     storeCount,
-    pricePerStore: PRICE_PER_STORE_JPY,
-    monthlyTotal: PRICE_PER_STORE_JPY * storeCount,
-    trialUsage: {
-      menuItems: { used: menuItemsUsed, limit: TRIAL_LIMITS.menuItems },
-      ingredients: { used: ingredientsUsed, limit: TRIAL_LIMITS.ingredients },
+    usage: {
+      menuItems: { used: menuItemsUsed, limit: plan.menuItems === Infinity ? null : plan.menuItems },
+      ingredients: { used: ingredientsUsed, limit: plan.ingredients === Infinity ? null : plan.ingredients },
     },
   });
 }

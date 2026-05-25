@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  const updateTenant = async (customerId: string, data: { stripeSubscriptionId?: string; subscriptionStatus?: string }) => {
+  const updateTenant = async (customerId: string, data: { stripeSubscriptionId?: string; subscriptionStatus?: string; plan?: string }) => {
     await prisma.tenant.updateMany({ where: { stripeCustomerId: customerId }, data });
   };
 
@@ -28,17 +28,29 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.subscription && session.customer) {
         const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+        // metadataのplanIdでプランを確定（なければbasic）
+        const planId = (session.metadata?.planId === 'pro' ? 'pro' : 'basic');
         await updateTenant(session.customer as string, {
           stripeSubscriptionId: sub.id,
           subscriptionStatus: sub.status,
+          plan: sub.status === 'active' ? planId : 'free',
         });
       }
       break;
     }
-    case 'customer.subscription.updated':
+    case 'customer.subscription.updated': {
+      const sub = event.data.object as Stripe.Subscription;
+      // 解約・一時停止時はfreeに戻す
+      const isActive = sub.status === 'active';
+      await updateTenant(sub.customer as string, {
+        subscriptionStatus: sub.status,
+        ...(isActive ? {} : { plan: 'free' }),
+      });
+      break;
+    }
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
-      await updateTenant(sub.customer as string, { subscriptionStatus: sub.status });
+      await updateTenant(sub.customer as string, { subscriptionStatus: sub.status, plan: 'free' });
       break;
     }
     case 'invoice.payment_failed': {

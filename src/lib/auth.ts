@@ -52,7 +52,7 @@ export async function getServerAuth(): Promise<AuthPayload | null> {
   return verifyToken(token);
 }
 
-/** トライアル上限 */
+/** トライアル上限（後方互換のため残す） */
 export const TRIAL_LIMITS = {
   menuItems: 10,
   ingredients: 20,
