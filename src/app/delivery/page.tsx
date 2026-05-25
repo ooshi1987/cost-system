@@ -8,6 +8,7 @@ interface EditableItem {
   quantity: string;
   unit: string;
   totalPrice: string;
+  type: 'food' | 'seasoning';
 }
 
 type PageState = 'capture' | 'processing' | 'reviewing' | 'saving' | 'saved';
@@ -90,11 +91,12 @@ export default function DeliveryPage() {
       }
       const data = await response.json();
       setEditableItems(
-        data.items.map((item: { name: string; quantity: number; unit: string; totalPrice: number }) => ({
+        data.items.map((item: { name: string; quantity: number; unit: string; totalPrice: number; type?: 'food' | 'seasoning' }) => ({
           name: item.name,
           quantity: String(item.quantity),
           unit: item.unit,
           totalPrice: String(item.totalPrice),
+          type: item.type ?? 'food',
         }))
       );
       setPreview(null);
@@ -124,6 +126,7 @@ export default function DeliveryPage() {
             quantity: parseFloat(item.quantity),
             unit: item.unit.trim() || '個',
             totalPrice: parseFloat(item.totalPrice),
+            type: item.type,
           })),
         }),
       });
@@ -175,7 +178,7 @@ export default function DeliveryPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto p-4 sm:p-8">
         <div className="mb-5">
-          <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm">
+          <Link href="/" className="text-amber-600 hover:text-amber-700 text-sm">
             ← ダッシュボードに戻る
           </Link>
         </div>
@@ -191,7 +194,7 @@ export default function DeliveryPage() {
                   <img src={preview} alt="Preview" className="max-w-full max-h-72 mx-auto mb-4 rounded-lg" />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-blue-500 text-sm font-medium"
+                    className="text-amber-500 text-sm font-medium"
                   >
                     別の画像を選ぶ
                   </button>
@@ -206,7 +209,7 @@ export default function DeliveryPage() {
                         fileInputRef.current?.setAttribute('capture', 'environment');
                         fileInputRef.current?.click();
                       }}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 active:bg-blue-800"
+                      className="bg-amber-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700"
                     >
                       📷 カメラで撮影
                     </button>
@@ -277,41 +280,58 @@ export default function DeliveryPage() {
                 if (isEditing && editDraft) {
                   // ── 編集中カード ──
                   return (
-                    <div key={idx} className="border-2 border-blue-400 rounded-xl p-3 bg-blue-50">
+                    <div key={idx} className="border-2 border-amber-400 rounded-xl p-3 bg-amber-50">
                       <div className="flex items-center gap-2 mb-2">
                         <input
                           value={editDraft.name}
                           onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
                           autoFocus
                           placeholder="食材名"
-                          className="flex-1 font-bold text-base border-b-2 border-blue-300 focus:border-blue-500 focus:outline-none bg-transparent"
+                          className="flex-1 font-bold text-base border-b-2 border-amber-300 focus:border-amber-500 focus:outline-none bg-transparent"
                         />
                         <button onClick={() => removeItem(idx)} className="text-red-300 hover:text-red-500 text-xl leading-none">×</button>
+                      </div>
+                      {/* 種別トグル（編集中） */}
+                      <div className="flex gap-1 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditDraft({ ...editDraft, type: 'food' })}
+                          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${editDraft.type === 'food' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          🥦 食材
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditDraft({ ...editDraft, type: 'seasoning' })}
+                          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${editDraft.type === 'seasoning' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          🧂 調味料
+                        </button>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
                         <label className="flex items-center gap-1">
                           <span className="text-xs text-gray-500">数量</span>
                           <input type="number" value={editDraft.quantity}
                             onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
-                            className="w-16 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white" />
+                            className="w-16 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-amber-400 bg-white" />
                         </label>
                         <label className="flex items-center gap-1">
                           <span className="text-xs text-gray-500">単位</span>
                           <input value={editDraft.unit}
                             onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })}
-                            className="w-14 text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-blue-400 bg-white" />
+                            className="w-14 text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-amber-400 bg-white" />
                         </label>
                         <label className="flex items-center gap-1 ml-auto">
                           <span className="text-xs text-gray-500">¥</span>
                           <input type="number" value={editDraft.totalPrice}
                             onChange={(e) => setEditDraft({ ...editDraft, totalPrice: e.target.value })}
-                            className="w-24 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-blue-400 bg-white" />
+                            className="w-24 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-amber-400 bg-white" />
                         </label>
                       </div>
                       <div className="text-right text-xs text-gray-400 mb-2">単価 ¥{unitPrice}</div>
                       <div className="flex gap-2">
                         <button onClick={saveEdit}
-                          className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                          className="flex-1 bg-amber-500 text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-amber-600">
                           保存
                         </button>
                         <button onClick={cancelEdit}
@@ -329,10 +349,15 @@ export default function DeliveryPage() {
                     key={idx}
                     onClick={() => editingIdx === null && pageState !== 'saving' && startEdit(idx)}
                     disabled={editingIdx !== null || pageState === 'saving'}
-                    className="w-full text-left bg-gray-50 rounded-xl px-4 py-3 hover:bg-blue-50 active:bg-blue-100 disabled:opacity-60 disabled:cursor-default transition-colors"
+                    className="w-full text-left bg-gray-50 rounded-xl px-4 py-3 hover:bg-amber-50 active:bg-amber-100 disabled:opacity-60 disabled:cursor-default transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-base">{item.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.type === 'seasoning' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
+                          {item.type === 'seasoning' ? '🧂 調味料' : '🥦 食材'}
+                        </span>
+                        <span className="font-bold text-base">{item.name}</span>
+                      </div>
                       <span className="font-bold text-base">¥{parseFloat(item.totalPrice).toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-between mt-1">
@@ -349,6 +374,7 @@ export default function DeliveryPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
+                    <th className="px-3 py-2 text-left w-28">種別</th>
                     <th className="px-3 py-2 text-left">食材名</th>
                     <th className="px-3 py-2 text-right w-20">数量</th>
                     <th className="px-3 py-2 w-16">単位</th>
@@ -366,6 +392,27 @@ export default function DeliveryPage() {
 
                     return (
                       <tr key={idx} className={isEditing ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                        {/* 種別トグル */}
+                        <td className="px-3 py-2">
+                          {isEditing && editDraft ? (
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditDraft({ ...editDraft, type: 'food' })}
+                                className={`flex-1 px-1.5 py-1 rounded text-xs font-semibold border transition-colors ${editDraft.type === 'food' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
+                              >🥦 食材</button>
+                              <button
+                                type="button"
+                                onClick={() => setEditDraft({ ...editDraft, type: 'seasoning' })}
+                                className={`flex-1 px-1.5 py-1 rounded text-xs font-semibold border transition-colors ${editDraft.type === 'seasoning' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
+                              >🧂 調味料</button>
+                            </div>
+                          ) : (
+                            <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${item.type === 'seasoning' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
+                              {item.type === 'seasoning' ? '🧂 調味料' : '🥦 食材'}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-2">
                           {isEditing && editDraft ? (
                             <input autoFocus value={editDraft.name}
@@ -406,7 +453,7 @@ export default function DeliveryPage() {
                           ) : (
                             <button onClick={() => editingIdx === null && startEdit(idx)}
                               disabled={editingIdx !== null || pageState === 'saving'}
-                              className="text-gray-300 hover:text-blue-500 disabled:opacity-20 p-1">✏️</button>
+                              className="text-gray-300 hover:text-amber-500 disabled:opacity-20 p-1">✏️</button>
                           )}
                         </td>
                       </tr>
@@ -448,7 +495,7 @@ export default function DeliveryPage() {
             <div className="space-y-2">
               <button
                 onClick={resetToCapture}
-                className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 active:bg-blue-800"
+                className="w-full bg-amber-500 text-white py-3.5 rounded-xl font-bold hover:bg-amber-600 active:bg-amber-700"
               >
                 続けてスキャン
               </button>

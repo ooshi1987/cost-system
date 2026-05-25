@@ -13,12 +13,17 @@ model Ingredient {
   name                String          @unique
   unit                String          // "g" or "ml"
   costPerUnit         Float           // 円/g or 円/ml
+  type                String          @default("food") // "food" | "seasoning"
+  category            String?         // グループ分け用カテゴリー
+  sortOrder           Int?            // 表示順
   lastUpdated         DateTime        @updatedAt
 
   recipeItems         RecipeItem[]
   deliveryItems       DeliveryItem[]
 
   @@index([name])
+  @@index([type])
+  @@index([sortOrder])
 }
 
 // メニュー商品
@@ -50,6 +55,12 @@ model RecipeItem {
   @@unique([menuItemId, ingredientId])
   @@index([menuItemId])
   @@index([ingredientId])
+}
+
+// アプリ設定（カテゴリー順など）
+model Settings {
+  key   String @id
+  value String  // JSON文字列
 }
 
 // 納品書

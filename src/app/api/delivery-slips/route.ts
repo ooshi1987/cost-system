@@ -23,6 +23,7 @@ interface SaveItem {
   quantity: number;
   unit: string;
   totalPrice: number;
+  type?: 'food' | 'seasoning';
 }
 
 export async function POST(request: NextRequest) {
@@ -45,12 +46,15 @@ export async function POST(request: NextRequest) {
                 where: { name: item.name },
               });
 
+              const itemType = item.type ?? 'food';
+
               if (!ingredient) {
                 ingredient = await prisma.ingredient.create({
                   data: {
                     name: item.name,
                     unit: item.unit,
                     costPerUnit: item.totalPrice / item.quantity,
+                    type: itemType,
                   },
                 });
               } else {
@@ -58,6 +62,7 @@ export async function POST(request: NextRequest) {
                   where: { id: ingredient.id },
                   data: {
                     costPerUnit: item.totalPrice / item.quantity,
+                    type: itemType,
                     lastUpdated: new Date(),
                   },
                 });

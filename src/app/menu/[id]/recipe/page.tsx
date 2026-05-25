@@ -83,7 +83,7 @@ export default function RecipePage() {
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-8 sm:py-8">
 
         <div className="mb-4">
-          <Link href="/menu" className="text-blue-600 hover:text-blue-700 text-sm">
+          <Link href="/menu" className="text-amber-600 hover:text-amber-700 text-sm">
             ← メニュー管理に戻る
           </Link>
         </div>
@@ -155,7 +155,7 @@ export default function RecipePage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300"
+                className="w-full bg-amber-500 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-amber-600 active:bg-amber-700 disabled:bg-gray-300"
               >
                 {submitting ? '追加中...' : '追加する'}
               </button>

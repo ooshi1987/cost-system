@@ -123,7 +123,7 @@ export default function DeliveryHistoryPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-4 sm:p-8">
         <div className="mb-6 sm:mb-8">
-          <Link href="/" className="text-blue-600 hover:text-blue-700">
+          <Link href="/" className="text-amber-600 hover:text-amber-700">
             ← ダッシュボードに戻る
           </Link>
         </div>
@@ -135,7 +135,7 @@ export default function DeliveryHistoryPage() {
             <p className="text-gray-500 mb-4">納品記録がまだありません</p>
             <Link
               href="/delivery"
-              className="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              className="inline-block bg-amber-500 text-white px-6 py-2 rounded hover:bg-amber-600"
             >
               納品書をスキャン
             </Link>
@@ -241,7 +241,7 @@ export default function DeliveryHistoryPage() {
                                 <span className="text-green-600 text-xs font-semibold">✓</span>
                               ) : (
                                 <button onClick={() => startEdit(item)} disabled={editState !== null}
-                                  className="text-gray-300 hover:text-blue-500 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1"
+                                  className="text-gray-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1"
                                   title="修正する">
                                   ✏️
                                 </button>
