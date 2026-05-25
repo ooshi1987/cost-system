@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
     const user = tenant.users[0];
     const store = tenant.stores[0];
 
-    // tenant_admin は全店舗アクセス可なので storeId=null
+    // tenant_admin: デフォルト店舗のstoreIdをJWTに含める
     const token = await signToken({
       userId: user.id,
       tenantId: tenant.id,
-      storeId: null,
+      storeId: store.id,
       role: 'tenant_admin',
       email: user.email,
     });
