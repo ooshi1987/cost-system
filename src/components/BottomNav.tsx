@@ -14,8 +14,8 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // ログインページでは非表示
-  if (pathname === '/login') return null;
+  // ログイン・サインアップ・スーパー管理者ページでは非表示
+  if (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/super-admin')) return null;
 
   return (
     <nav
