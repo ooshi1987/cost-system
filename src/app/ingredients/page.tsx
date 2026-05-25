@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -20,7 +20,7 @@ interface ReorderGroup {
   items: Ingredient[];
 }
 
-export default function IngredientsPage() {
+function IngredientsContent() {
   const searchParams = useSearchParams();
   const type = (searchParams.get('type') || 'food') as 'food' | 'seasoning';
   const pageTitle = type === 'food' ? '食材一覧' : '調味料一覧';
@@ -599,5 +599,13 @@ export default function IngredientsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function IngredientsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-400">読み込み中…</p></div>}>
+      <IngredientsContent />
+    </Suspense>
   );
 }
