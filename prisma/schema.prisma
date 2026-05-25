@@ -3,90 +3,190 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// ─────────────────────────────────────────
+// SaaS層
+// ─────────────────────────────────────────
+
+// テナント（会社）― Stripe課金の単位
+model Tenant {
+  id                    String    @id @default(cuid())
+  name                  String                       // 会社名
+  email                 String    @unique            // 管理者メールアドレス
+  // Stripe
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?   @unique
+  subscriptionStatus    String?                      // active | trialing | past_due | canceled
+  pricePerStore         Int?                         // 1店舗あたりの月額（円）
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  users                 User[]
+  stores                Store[]
+
+  @@index([email])
+}
+
+// ユーザー
+model User {
+  id            String    @id @default(cuid())
+  tenantId      String
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  role          String    @default("store_staff")    // tenant_admin | store_staff
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  storeUsers    StoreUser[]
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// ユーザーと店舗の紐付け（多対多）
+model StoreUser {
+  userId    String
+  storeId   String
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, storeId])
+  @@index([userId])
+  @@index([storeId])
+}
+
+// 店舗
+model Store {
+  id          String    @id @default(cuid())
+  tenantId    String
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  storeUsers    StoreUser[]
+  ingredients   Ingredient[]
+  menuItems     MenuItem[]
+  deliverySlips DeliverySlip[]
+  settings      Settings[]
+
+  @@index([tenantId])
+}
+
+// スーパー管理者（運営者自身）
+model SuperAdmin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+}
+
+// ─────────────────────────────────────────
+// 業務データ層（全てstoreIdで分離）
+// ─────────────────────────────────────────
+
 // 食材・調味料
 model Ingredient {
-  id                  String          @id @default(cuid())
-  name                String          @unique
-  unit                String          // "g" or "ml"
-  costPerUnit         Float           // 円/g or 円/ml
-  type                String          @default("food") // "food" | "seasoning"
-  category            String?         // グループ分け用カテゴリー
-  sortOrder           Int?            // 表示順
-  lastUpdated         DateTime        @updatedAt
+  id            String    @id @default(cuid())
+  storeId       String
+  name          String
+  unit          String                               // "g" | "ml" など
+  costPerUnit   Float                                // 円/g or 円/ml
+  type          String    @default("food")           // "food" | "seasoning"
+  category      String?
+  sortOrder     Int?
+  lastUpdated   DateTime  @updatedAt
 
-  recipeItems         RecipeItem[]
-  deliveryItems       DeliveryItem[]
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  recipeItems   RecipeItem[]
+  deliveryItems DeliveryItem[]
 
-  @@index([name])
-  @@index([type])
-  @@index([sortOrder])
+  @@unique([storeId, name])   // 同じ店舗内でのみユニーク
+  @@index([storeId])
+  @@index([storeId, type])
+  @@index([storeId, sortOrder])
 }
 
 // メニュー商品
 model MenuItem {
-  id                  String          @id @default(cuid())
-  name                String          @unique
-  sellingPrice        Float           // 販売価格（円）
-  category            String?         // カテゴリ（メニュー表のセクション名）
-  sortOrder           Int?            // メニュー表での掲載順（nullは末尾）
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  id            String    @id @default(cuid())
+  storeId       String
+  name          String
+  sellingPrice  Float                                // 販売価格（円）
+  category      String?
+  sortOrder     Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  recipeItems         RecipeItem[]
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  recipeItems   RecipeItem[]
 
-  @@index([name])
-  @@index([sortOrder])
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@index([storeId, sortOrder])
 }
 
 // レシピ明細（メニュー × 食材）
 model RecipeItem {
-  id                  String          @id @default(cuid())
-  menuItemId          String
-  ingredientId        String
-  quantity            Float           // グラム数またはミリリットル数
+  id            String    @id @default(cuid())
+  menuItemId    String
+  ingredientId  String
+  quantity      Float
 
-  menuItem            MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  ingredient          Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  menuItem      MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
   @@unique([menuItemId, ingredientId])
   @@index([menuItemId])
   @@index([ingredientId])
 }
 
-// アプリ設定（カテゴリー順など）
+// アプリ設定（店舗ごと）
 model Settings {
-  key   String @id
-  value String  // JSON文字列
+  id        String  @id @default(cuid())
+  storeId   String
+  key       String
+  value     String
+
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, key])
+  @@index([storeId])
 }
 
 // 納品書
 model DeliverySlip {
-  id                  String          @id @default(cuid())
-  photoPath           String?         // 撮影写真へのパス
-  ocrRawData          String?         // OCRの生データ（JSON）
-  createdAt           DateTime        @default(now())
-  processedAt         DateTime?
+  id            String    @id @default(cuid())
+  storeId       String
+  photoPath     String?
+  ocrRawData    String?
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
 
-  deliveryItems       DeliveryItem[]
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  deliveryItems DeliveryItem[]
 
-  @@index([createdAt])
+  @@index([storeId])
+  @@index([storeId, createdAt])
 }
 
-// 納品書の明細
+// 納品書明細
 model DeliveryItem {
-  id                  String          @id @default(cuid())
-  deliverySlipId      String
-  ingredientId        String
-  quantity            Float
-  unit                String          // "g" or "ml"
-  totalPrice          Float           // 合計金額（円）
+  id              String    @id @default(cuid())
+  deliverySlipId  String
+  ingredientId    String
+  quantity        Float
+  unit            String
+  totalPrice      Float
 
-  deliverySlip        DeliverySlip    @relation(fields: [deliverySlipId], references: [id], onDelete: Cascade)
-  ingredient          Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  deliverySlip    DeliverySlip  @relation(fields: [deliverySlipId], references: [id], onDelete: Cascade)
+  ingredient      Ingredient    @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
   @@index([deliverySlipId])
   @@index([ingredientId])

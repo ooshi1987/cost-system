@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuth } from '@/lib/auth';
 
-export async function GET() {
-  const rows = await prisma.settings.findMany();
+export async function GET(request: NextRequest) {
+  const auth = await getAuth(request);
+  if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rows = await prisma.settings.findMany({ where: { storeId: auth.storeId } });
   const result: Record<string, unknown> = {};
   for (const row of rows) {
     try { result[row.key] = JSON.parse(row.value); }
@@ -12,11 +16,14 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await getAuth(request);
+  if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { key, value } = await request.json();
   await prisma.settings.upsert({
-    where: { key },
+    where: { storeId_key: { storeId: auth.storeId, key } },
     update: { value: JSON.stringify(value) },
-    create: { key, value: JSON.stringify(value) },
+    create: { storeId: auth.storeId, key, value: JSON.stringify(value) },
   });
   return NextResponse.json({ ok: true });
 }

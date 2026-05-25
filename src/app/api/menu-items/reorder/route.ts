@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getAuth } from '@/lib/auth';
 
-// PATCH: 複数メニューのsortOrderを一括更新
-// body: { items: [{ id: string, sortOrder: number }] }
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await getAuth(request);
+    if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { items } = await request.json();
     await Promise.all(
       (items as { id: string; sortOrder: number; category?: string }[]).map(({ id, sortOrder, category }) =>
-        prisma.menuItem.update({
-          where: { id },
+        prisma.menuItem.updateMany({
+          where: { id, storeId: auth.storeId! },
           data: { sortOrder, ...(category !== undefined ? { category } : {}) },
         })
       )
