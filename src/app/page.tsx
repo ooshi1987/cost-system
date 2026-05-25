@@ -75,7 +75,7 @@ export default function LandingPage() {
               ログイン
             </Link>
             <Link
-              href="/login"
+              href="/demo"
               className="text-sm bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2 rounded-xl transition-colors"
             >
               デモを試す
@@ -100,7 +100,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link
-            href="/login"
+            href="/demo"
             className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold px-7 py-4 rounded-2xl text-base shadow-lg shadow-amber-200 transition-colors"
           >
             <span>🚀</span>
@@ -220,7 +220,7 @@ export default function LandingPage() {
         <h2 className="text-2xl font-extrabold mb-3">まずはデモを見てみましょう</h2>
         <p className="text-gray-500 text-sm mb-8">登録不要、すぐに試せます</p>
         <Link
-          href="/login"
+          href="/demo"
           className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-4 rounded-2xl text-base shadow-lg shadow-amber-200 transition-colors"
         >
           <span>🚀</span>

@@ -18,8 +18,8 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // LP（ルート）は認証不要
-  if (pathname === '/') {
+  // LP・デモページは認証不要
+  if (pathname === '/' || pathname === '/demo') {
     return NextResponse.next();
   }
 
