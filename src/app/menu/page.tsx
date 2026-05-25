@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import UpgradeModal from '@/components/UpgradeModal';
 
 interface MenuItem {
   id: string;
@@ -324,6 +325,9 @@ export default function MenuPage() {
     } catch { alert('削除に失敗しました'); }
   };
 
+  // アップグレードモーダル
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+
   // PDFインポート
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStep, setImportStep] = useState<ImportStep>('idle');
@@ -381,6 +385,11 @@ export default function MenuPage() {
       if (response.ok) {
         setFormData({ name: '', sellingPrice: '', category: '' });
         await fetchMenuItems();
+      } else {
+        const data = await response.json();
+        if (data.error === 'TRIAL_LIMIT') {
+          setUpgradeMessage(data.message);
+        }
       }
     } finally {
       setSubmitting(false);
@@ -430,7 +439,10 @@ export default function MenuPage() {
 
         if (!response.ok) {
           const rawError: string = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
-          if (rawError.includes('request_too_large') || rawError.includes('413')) {
+          if (rawError === 'TRIAL_LIMIT' || rawError.includes('TRIAL_LIMIT')) {
+            setUpgradeMessage(data.message);
+            break; // これ以上処理しない
+          } else if (rawError.includes('request_too_large') || rawError.includes('413')) {
             errors.push(`「${file.name}」: ファイルが大きすぎてAIが処理できませんでした`);
           } else {
             errors.push(`「${file.name}」: ${data.error || '読み取り失敗'}`);
@@ -550,6 +562,9 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {upgradeMessage && (
+        <UpgradeModal message={upgradeMessage} onClose={() => setUpgradeMessage(null)} />
+      )}
       <div className="max-w-4xl mx-auto p-4 sm:p-8">
         <div className="mb-6">
           <Link href="/" className="text-amber-600 hover:text-amber-700">

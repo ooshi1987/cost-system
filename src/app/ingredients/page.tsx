@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import UpgradeModal from '@/components/UpgradeModal';
 
 interface Ingredient {
   id: string;
@@ -33,6 +34,7 @@ function IngredientsContent() {
   // 手動追加フォーム
   const [formData, setFormData] = useState({ name: '', unit: 'g', costPerUnit: '', category: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   // カテゴリーフィルター
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -135,7 +137,15 @@ function IngredientsContent() {
           category: formData.category || null,
         }),
       });
-      if (res.ok) { setFormData({ name: '', unit: 'g', costPerUnit: '', category: '' }); await fetchIngredients(); }
+      if (res.ok) {
+        setFormData({ name: '', unit: 'g', costPerUnit: '', category: '' });
+        await fetchIngredients();
+      } else {
+        const data = await res.json();
+        if (data.error === 'TRIAL_LIMIT') {
+          setUpgradeMessage(data.message ?? 'プランの上限に達しました。');
+        }
+      }
     } finally { setSubmitting(false); }
   };
 
@@ -310,6 +320,7 @@ function IngredientsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {upgradeMessage && <UpgradeModal message={upgradeMessage} onClose={() => setUpgradeMessage(null)} />}
       <div className="max-w-4xl mx-auto p-4 sm:p-8">
         <div className="mb-6">
           <Link href="/" className="text-amber-600 hover:text-amber-700">← ダッシュボードに戻る</Link>
