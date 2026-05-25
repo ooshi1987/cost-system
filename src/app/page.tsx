@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CostraLogo from '@/components/CostraLogo';
 
 const FEATURES = [
   {
@@ -63,10 +64,7 @@ export default function LandingPage() {
       {/* ── ヘッダー ── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🧾</span>
-            <span className="font-bold text-gray-900 text-sm tracking-tight">原価管理システム</span>
-          </div>
+          <CostraLogo size={28} />
           <div className="flex items-center gap-3">
             <Link
               href="/login"
@@ -125,7 +123,7 @@ export default function LandingPage() {
               <span className="w-3 h-3 rounded-full bg-yellow-300" />
               <span className="w-3 h-3 rounded-full bg-green-300" />
             </div>
-            <span className="text-xs text-gray-400 ml-2">原価管理システム</span>
+            <CostraLogo size={16} className="ml-2 opacity-60" />
           </div>
           <div className="p-6">
             <div className="grid grid-cols-3 gap-3 mb-5">
@@ -231,10 +229,7 @@ export default function LandingPage() {
       {/* ── フッター ── */}
       <footer className="border-t border-gray-100 py-8">
         <div className="max-w-4xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>🧾</span>
-            <span>原価管理システム</span>
-          </div>
+          <CostraLogo size={22} className="opacity-70" />
           <div className="flex gap-5 text-xs text-gray-400">
             <Link href="/login" className="hover:text-gray-600 transition-colors">ログイン</Link>
             <Link href="/signup" className="hover:text-gray-600 transition-colors">新規登録</Link>

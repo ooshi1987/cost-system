@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import CostraLogo from '@/components/CostraLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,8 +38,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🧾</div>
-          <h1 className="text-2xl font-bold text-gray-800">原価管理システム</h1>
+          <div className="flex justify-center mb-4">
+            <CostraLogo size={40} />
+          </div>
           <p className="text-gray-400 text-sm mt-1">ログインしてください</p>
         </div>
 

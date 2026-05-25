@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StoreSelector from '@/components/StoreSelector';
+import CostraLogo from '@/components/CostraLogo';
 
 interface Stats {
   menuItemCount: number;
@@ -77,10 +78,7 @@ export default function Dashboard() {
 
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">Restaurant</p>
-            <h1 className="text-xl font-bold text-gray-800 leading-tight">原価管理システム</h1>
-          </div>
+          <CostraLogo size={32} />
           <button
             onClick={handleLogout}
             className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"

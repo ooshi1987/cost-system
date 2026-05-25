@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "原価管理システム",
-  description: "飲食店の食材原価・利益率管理",
+  title: "Costra — 飲食店の原価管理",
+  description: "飲食店の食材原価・利益率をスマートに管理するSaaS「Costra」",
   // iOS PWA
   appleWebApp: {
     capable: true,
-    title: "原価管理",
+    title: "Costra",
     statusBarStyle: "default",
   },
 };
