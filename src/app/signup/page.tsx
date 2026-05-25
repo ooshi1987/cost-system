@@ -24,7 +24,7 @@ export default function SignupPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || '登録に失敗しました'); return; }
-      router.push('/');
+      router.push('/dashboard');
       router.refresh();
     } catch {
       setError('エラーが発生しました');

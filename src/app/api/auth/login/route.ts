@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
     });
 
-    const res = NextResponse.json({ ok: true, redirect: '/' });
+    const res = NextResponse.json({ ok: true, redirect: '/dashboard' });
     res.cookies.set('auth-token', token, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
     return res;
   } catch (error) {

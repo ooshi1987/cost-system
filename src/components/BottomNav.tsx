@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/',                  label: 'ホーム',   icon: '🏠', exact: true  },
+  { href: '/dashboard',         label: 'ホーム',   icon: '🏠', exact: true  },
   { href: '/menu',              label: 'メニュー', icon: '📋', exact: false },
   { href: '/delivery',          label: 'スキャン', icon: '📸', exact: true  },
   { href: '/ingredients',       label: '食材',     icon: '🥦', exact: false },
@@ -14,8 +14,8 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // ログイン・サインアップ・スーパー管理者ページでは非表示
-  if (pathname === '/login' || pathname === '/signup' || pathname.startsWith('/super-admin')) return null;
+  // LP・ログイン・サインアップ・スーパー管理者ページでは非表示
+  if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname.startsWith('/super-admin')) return null;
 
   return (
     <nav
