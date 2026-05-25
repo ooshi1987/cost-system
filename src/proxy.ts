@@ -18,6 +18,11 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // LP（ルート）は認証不要
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+
   // 公開パスはスルー
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
