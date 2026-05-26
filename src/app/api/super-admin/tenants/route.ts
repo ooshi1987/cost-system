@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         email: t.email,
         subscriptionStatus: t.subscriptionStatus,
         stripeCustomerId: t.stripeCustomerId,
+        isInternal: t.isInternal,
         pricePerStore,
         storeCount,
         userCount,
@@ -64,5 +65,26 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch tenants' }, { status: 500 });
+  }
+}
+
+/** isInternal フラグをトグル */
+export async function PATCH(request: NextRequest) {
+  if (!(await isSuperAdmin(request))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  try {
+    const { tenantId, isInternal } = await request.json();
+    if (!tenantId || typeof isInternal !== 'boolean') {
+      return NextResponse.json({ error: 'tenantId と isInternal は必須です' }, { status: 400 });
+    }
+    const updated = await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { isInternal },
+    });
+    return NextResponse.json({ id: updated.id, isInternal: updated.isInternal });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to update tenant' }, { status: 500 });
   }
 }

@@ -21,6 +21,7 @@ model Tenant {
   stripeSubscriptionId  String?   @unique
   subscriptionStatus    String?                      // active | trialing | past_due | canceled
   plan                  String    @default("free")   // free | basic | pro
+  isInternal            Boolean   @default(false)    // 社内アカウント（課金スキップ・pro扱い）
   pricePerStore         Int?                         // 1店舗あたりの月額（円）
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

@@ -45,3 +45,14 @@ export function getPlan(planId: string | null | undefined): typeof PLANS[PlanId]
   if (planId === 'pro')   return PLANS.pro;
   return PLANS.free;
 }
+
+/**
+ * isInternal=true の社内アカウントは常に pro 扱い（課金スキップ）
+ */
+export function getEffectivePlan(
+  planId: string | null | undefined,
+  isInternal: boolean | null | undefined,
+): typeof PLANS[PlanId] {
+  if (isInternal) return PLANS.pro;
+  return getPlan(planId);
+}

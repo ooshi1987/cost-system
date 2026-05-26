@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
-import { getPlan } from '@/lib/stripe';
+import { getEffectivePlan } from '@/lib/stripe';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ── プラン制限チェック ──
-    const tenant = await prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { plan: true } });
-    const plan = getPlan(tenant?.plan);
+    const tenant = await prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { plan: true, isInternal: true } });
+    const plan = getEffectivePlan(tenant?.plan, tenant?.isInternal);
     if (plan.ingredients !== Infinity) {
       const count = await prisma.ingredient.count({ where: { storeId: auth.storeId } });
       if (count >= plan.ingredients) {

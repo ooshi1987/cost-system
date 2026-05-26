@@ -13,6 +13,7 @@ interface Tenant {
   name: string;
   email: string;
   subscriptionStatus: string | null;
+  isInternal: boolean;
   pricePerStore: number;
   storeCount: number;
   userCount: number;
@@ -52,6 +53,25 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const toggleInternal = async (tenantId: string, current: boolean) => {
+    setTogglingId(tenantId);
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, isInternal: !current }),
+      });
+      if (res.ok) {
+        setTenants((prev) =>
+          prev.map((t) => t.id === tenantId ? { ...t, isInternal: !current } : t)
+        );
+      }
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/super-admin/tenants')
@@ -157,6 +177,11 @@ export default function SuperAdminPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-gray-800 truncate">{t.name}</span>
                             {statusBadge(t.subscriptionStatus)}
+                            {t.isInternal && (
+                              <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">
+                                社内
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-gray-400 mt-0.5 truncate">{t.email}</p>
                         </div>
@@ -204,6 +229,27 @@ export default function SuperAdminPage() {
                           <p className="text-xs text-gray-400">ステータス</p>
                           <p>{statusBadge(t.subscriptionStatus)}</p>
                         </div>
+                      </div>
+
+                      {/* 社内アカウントトグル */}
+                      <div className="flex items-center justify-between bg-white border rounded-xl px-4 py-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">社内アカウント（課金スキップ）</p>
+                          <p className="text-xs text-gray-400">ONにするとPro相当の機能を無料で利用可能</p>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleInternal(t.id, t.isInternal); }}
+                          disabled={togglingId === t.id}
+                          className={`relative w-12 h-6 rounded-full transition-colors ${
+                            t.isInternal ? 'bg-purple-500' : 'bg-gray-200'
+                          } ${togglingId === t.id ? 'opacity-50' : ''}`}
+                        >
+                          <span
+                            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                              t.isInternal ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
                       </div>
 
                       {t.stores.length > 0 && (
