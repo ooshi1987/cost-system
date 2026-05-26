@@ -79,12 +79,20 @@ export default function Dashboard() {
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-4">
           <CostraLogo size={32} />
-          <button
-            onClick={handleLogout}
-            className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            ログアウト
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/help"
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              ？ヘルプ
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              ログアウト
+            </button>
+          </div>
         </div>
         {/* 店舗切替（tenant_admin かつ複数店舗時のみ表示） */}
         <div className="mb-4">
