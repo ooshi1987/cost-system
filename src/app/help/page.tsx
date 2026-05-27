@@ -1,7 +1,29 @@
 import Link from 'next/link';
 import CostraLogo from '@/components/CostraLogo';
 
-const SECTIONS = [
+type Step = {
+  step: number | null;
+  title: string;
+  desc: string;
+  badge?: string;
+};
+
+type Plan = {
+  name: string;
+  color: string;
+  badge: string;
+  features: string[];
+};
+
+type Section = {
+  id: string;
+  title: string;
+  icon: string;
+  steps?: Step[];
+  plans?: Plan[];
+};
+
+const SECTIONS: Section[] = [
   {
     id: 'start',
     title: 'はじめかた',
