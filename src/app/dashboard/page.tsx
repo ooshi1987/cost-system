@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StoreSelector from '@/components/StoreSelector';
 import CostraLogo from '@/components/CostraLogo';
+import MultiStoreLink from '@/components/MultiStoreLink';
 
 interface Stats {
   menuItemCount: number;
@@ -94,9 +95,10 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-        {/* 店舗切替（tenant_admin かつ複数店舗時のみ表示） */}
-        <div className="mb-4">
+        {/* 店舗切替 ＋ 全店舗ダッシュボード（tenant_admin かつ複数店舗時のみ表示） */}
+        <div className="mb-4 flex items-center gap-2">
           <StoreSelector />
+          <MultiStoreLink />
         </div>
 
         {/* KPIカード */}
