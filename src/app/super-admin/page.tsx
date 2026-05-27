@@ -133,6 +133,15 @@ export default function SuperAdminPage() {
   const [resetPassword, setResetPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMsg, setResetMsg]         = useState<{ ok: boolean; text: string } | null>(null);
+  // スタッフ追加
+  const [addStaffStoreId, setAddStaffStoreId] = useState<string | null>(null);
+  const [staffEmail, setStaffEmail]           = useState('');
+  const [staffPassword, setStaffPassword]     = useState('');
+  const [staffName, setStaffName]             = useState('');
+  const [staffLoading, setStaffLoading]       = useState(false);
+  const [staffMsg, setStaffMsg]               = useState<{ ok: boolean; text: string } | null>(null);
+  // 作成済み認証情報（一度だけ表示）
+  const [createdCredential, setCreatedCredential] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -174,6 +183,33 @@ export default function SuperAdminPage() {
       }
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const addStaffAccount = async (tenantId: string) => {
+    if (!addStaffStoreId || !staffEmail || !staffPassword) return;
+    setStaffLoading(true); setStaffMsg(null);
+    try {
+      const res = await fetch('/api/super-admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, storeId: addStaffStoreId, email: staffEmail, password: staffPassword, name: staffName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCreatedCredential({ email: staffEmail, password: staffPassword });
+        setStaffMsg({ ok: true, text: 'アカウントを作成しました' });
+        setStaffEmail(''); setStaffPassword(''); setStaffName('');
+        setAddStaffStoreId(null);
+        // ユーザー一覧を更新
+        setTenants(prev => prev.map(t =>
+          t.id === tenantId ? { ...t, users: [...t.users, data.user], userCount: t.userCount + 1 } : t
+        ));
+      } else {
+        setStaffMsg({ ok: false, text: data.error ?? '作成に失敗しました' });
+      }
+    } finally {
+      setStaffLoading(false);
     }
   };
 
@@ -473,16 +509,119 @@ export default function SuperAdminPage() {
                         </div>
                       )}
 
+                      {/* 店舗一覧＋スタッフ追加 */}
                       {t.stores.length > 0 && (
-                          <div>
-                            <p className="text-xs text-gray-400 mb-1">店舗</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {t.stores.map(s => (
-                                <span key={s.id} className="text-xs bg-white border rounded-full px-2.5 py-1 text-gray-600">{s.name}</span>
-                              ))}
-                            </div>
+                        <div>
+                          <p className="text-xs text-gray-400 mb-2">🏪 店舗・スタッフアカウント</p>
+                          <div className="flex flex-col gap-2">
+                            {t.stores.map(s => (
+                              <div key={s.id} className="bg-white border rounded-xl px-3 py-2.5">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                                  <button
+                                    onClick={() => {
+                                      setAddStaffStoreId(addStaffStoreId === s.id ? null : s.id);
+                                      setStaffEmail(''); setStaffPassword(''); setStaffName('');
+                                      setStaffMsg(null); setCreatedCredential(null);
+                                    }}
+                                    className="text-xs text-green-600 hover:text-green-700 font-semibold px-2 py-1 rounded-lg hover:bg-green-50 transition-colors"
+                                  >
+                                    ＋ スタッフ追加
+                                  </button>
+                                </div>
+
+                                {/* 該当店舗のスタッフ一覧 */}
+                                {t.users.filter(u => u.role === 'store_staff').length > 0 && (
+                                  <div className="flex flex-col gap-1 mb-1">
+                                    {t.users
+                                      .filter(u => u.role === 'store_staff')
+                                      .map(u => (
+                                        <div key={u.id} className="flex items-center gap-2 text-xs text-gray-500 pl-1">
+                                          <span>👤</span>
+                                          <span className="truncate">{u.email}</span>
+                                        </div>
+                                      ))}
+                                  </div>
+                                )}
+
+                                {/* スタッフ追加フォーム */}
+                                {addStaffStoreId === s.id && (
+                                  <div className="mt-2 bg-green-50 border border-green-200 rounded-xl p-3">
+                                    <p className="text-xs font-semibold text-green-700 mb-2">
+                                      ＋ 「{s.name}」のスタッフアカウントを作成
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                      <input
+                                        type="text"
+                                        value={staffName}
+                                        onChange={e => setStaffName(e.target.value)}
+                                        placeholder="名前（任意）"
+                                        className="text-sm border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:border-green-400 bg-white"
+                                      />
+                                      <input
+                                        type="email"
+                                        value={staffEmail}
+                                        onChange={e => setStaffEmail(e.target.value)}
+                                        placeholder="メールアドレス"
+                                        className="text-sm border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:border-green-400 bg-white"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={staffPassword}
+                                        onChange={e => setStaffPassword(e.target.value)}
+                                        placeholder="パスワード（4文字以上）"
+                                        className="text-sm border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:border-green-400 bg-white"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => addStaffAccount(t.id)}
+                                          disabled={staffLoading || !staffEmail || staffPassword.length < 4}
+                                          className="flex-1 text-sm font-bold bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white py-2 rounded-lg transition-colors"
+                                        >
+                                          {staffLoading ? '作成中…' : 'アカウント作成'}
+                                        </button>
+                                        <button
+                                          onClick={() => { setAddStaffStoreId(null); setStaffMsg(null); }}
+                                          className="text-xs text-gray-400 hover:text-gray-600 px-3"
+                                        >✕</button>
+                                      </div>
+                                      {staffMsg && (
+                                        <p className={`text-xs font-semibold ${staffMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+                                          {staffMsg.ok ? '✅' : '❌'} {staffMsg.text}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        )}
+
+                          {/* 作成済み認証情報の表示（一度だけ） */}
+                          {createdCredential && (
+                            <div className="mt-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3">
+                              <p className="text-xs font-bold text-yellow-700 mb-2">📋 作成したアカウント情報（スタッフに共有してください）</p>
+                              <div className="flex flex-col gap-1 font-mono text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500 w-24">メール:</span>
+                                  <span className="font-semibold text-gray-800">{createdCredential.email}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500 w-24">パスワード:</span>
+                                  <span className="font-semibold text-gray-800">{createdCredential.password}</span>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-yellow-600 mt-2">※ このページを閉じると再表示できません</p>
+                              <button
+                                onClick={() => setCreatedCredential(null)}
+                                className="text-xs text-yellow-600 hover:text-yellow-800 mt-1 font-semibold"
+                              >
+                                閉じる
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       </div>
                     )}
                   </div>
