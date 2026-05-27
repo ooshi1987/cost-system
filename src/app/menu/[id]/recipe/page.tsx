@@ -82,9 +82,16 @@ export default function RecipePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-8 sm:py-8">
 
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <Link href="/menu" className="text-amber-600 hover:text-amber-700 text-sm">
             ← メニュー管理に戻る
+          </Link>
+          <Link
+            href="/help/recipe"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-amber-600 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 transition-colors border border-gray-200 hover:border-amber-200"
+          >
+            <span>？</span>
+            <span>使い方</span>
           </Link>
         </div>
 
