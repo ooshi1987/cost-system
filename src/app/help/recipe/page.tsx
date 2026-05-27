@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import CostraLogo from '@/components/CostraLogo';
 
 export default function HelpRecipePage() {
@@ -20,7 +21,21 @@ export default function HelpRecipePage() {
           <span className="text-2xl">🍳</span>
           <h1 className="text-2xl font-extrabold text-gray-900">レシピ設定・原価計算</h1>
         </div>
-        <p className="text-sm text-gray-400 mb-6">メニューに使う食材と量を設定して、原価率を自動計算する画面です</p>
+        <p className="text-sm text-gray-400 mb-4">メニューに使う食材と量を設定して、原価率を自動計算する画面です</p>
+
+        {/* スクリーンショット */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-6">
+          <p className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
+            <span>📱</span> 実際の画面
+          </p>
+          <Image
+            src="/help/screen-recipe.jpg"
+            alt="レシピ設定・原価計算画面"
+            width={390}
+            height={844}
+            className="rounded-xl w-full border border-gray-100"
+          />
+        </div>
 
         <div className="flex flex-col gap-4">
 
