@@ -72,8 +72,8 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push('/')} className="text-amber-600 text-sm">← 戻る</button>
-          <h1 className="text-xl font-bold">管理設定</h1>
+          <button onClick={() => router.push('/dashboard')} className="text-amber-600 text-sm">← ダッシュボード</button>
+          <h1 className="text-xl font-bold">⚙️ 管理設定</h1>
         </div>
 
         {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm mb-4">{error}</div>}

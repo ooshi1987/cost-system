@@ -87,6 +87,12 @@ export default function Dashboard() {
             >
               ？ヘルプ
             </Link>
+            <Link
+              href="/admin"
+              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              ⚙️ 設定
+            </Link>
             <button
               onClick={handleLogout}
               className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
