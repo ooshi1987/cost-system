@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 import CostraLogo from '@/components/CostraLogo';
 
 const PAGE_GUIDES = [
@@ -59,7 +62,44 @@ const QUICK_STEPS = [
   { step: 4, title: '原価率を確認する', href: '/help/dashboard', desc: 'ダッシュボードで一目確認' },
 ];
 
+const CATEGORIES = [
+  { value: 'usage', label: '操作方法がわからない' },
+  { value: 'bug', label: 'バグ・不具合の報告' },
+  { value: 'billing', label: '料金・プランについて' },
+  { value: 'feature', label: '機能追加のご要望' },
+  { value: 'other', label: 'その他' },
+];
+
 export default function HelpPage() {
+  const [category, setCategory] = useState('');
+  const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!category || !content.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, content }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '送信に失敗しました');
+      }
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '送信に失敗しました');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-xl mx-auto px-4 pt-6 pb-12">
@@ -140,18 +180,75 @@ export default function HelpPage() {
           </Link>
         </div>
 
-        {/* サポート */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 text-center">
-          <div className="text-2xl mb-2">💬</div>
-          <div className="font-bold text-gray-800 text-sm mb-1">お困りのことがあれば</div>
-          <p className="text-xs text-gray-400 mb-3">解決しない場合はお気軽にお問い合わせください</p>
-          <a
-            href="mailto:support@costra.app"
-            className="inline-flex items-center gap-1.5 text-sm text-amber-600 font-semibold hover:text-amber-700 transition-colors"
-          >
-            <span>✉️</span>
-            support@costra.app
-          </a>
+        {/* お問い合わせフォーム */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-800 px-5 py-3 flex items-center gap-2">
+            <span className="text-white text-lg">💬</span>
+            <h2 className="font-bold text-white">お問い合わせ</h2>
+          </div>
+          <div className="p-5">
+            {sent ? (
+              <div className="text-center py-4">
+                <div className="text-4xl mb-3">✅</div>
+                <p className="font-bold text-gray-800 mb-1">送信しました！</p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  お問い合わせいただきありがとうございます。<br />
+                  内容を確認のうえ、ご登録のメールアドレスに返信いたします。
+                </p>
+                <button
+                  onClick={() => { setSent(false); setCategory(''); setContent(''); }}
+                  className="mt-4 text-xs text-amber-600 hover:text-amber-800 font-semibold"
+                >
+                  別の問い合わせをする
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">件名</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400 bg-white"
+                  >
+                    <option value="">選択してください</option>
+                    {CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">
+                    お問い合わせ内容
+                    <span className="text-gray-400 font-normal ml-2">{content.length}/2000</span>
+                  </label>
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    required
+                    maxLength={2000}
+                    rows={5}
+                    placeholder="できるだけ具体的にお書きください&#10;例：メニュー管理のインポートボタンを押しても何も反応しない"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                  />
+                </div>
+                {error && (
+                  <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting || !category || !content.trim()}
+                  className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3 rounded-2xl text-sm transition-colors"
+                >
+                  {submitting ? '送信中...' : '送信する'}
+                </button>
+                <p className="text-xs text-gray-400 text-center leading-relaxed">
+                  ログイン中のアカウント情報が自動で添付されます
+                </p>
+              </form>
+            )}
+          </div>
         </div>
 
       </div>

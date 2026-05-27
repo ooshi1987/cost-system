@@ -193,3 +193,19 @@ model DeliveryItem {
   @@index([deliverySlipId])
   @@index([ingredientId])
 }
+
+// 問い合わせ
+model ContactInquiry {
+  id          String    @id @default(cuid())
+  category    String                          // "usage" | "bug" | "billing" | "feature" | "other"
+  content     String
+  email       String?                         // ログイン中ならテナントのメール、未ログインはnull
+  tenantId    String?                         // ログイン中なら自動付与
+  tenantName  String?                         // ログイン中なら自動付与
+  plan        String?                         // ログイン中なら自動付与
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}

@@ -7,6 +7,25 @@ import CostraLogo from '@/components/CostraLogo';
 interface Store { id: string; name: string; }
 interface TenantUser { id: string; email: string; name: string | null; role: string; }
 
+interface ContactInquiry {
+  id: string;
+  category: string;
+  content: string;
+  email: string | null;
+  tenantName: string | null;
+  plan: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+const CATEGORY_LABEL: Record<string, string> = {
+  usage:   '操作方法',
+  bug:     'バグ報告',
+  billing: '料金・プラン',
+  feature: '機能要望',
+  other:   'その他',
+};
+
 interface Tenant {
   id: string;
   name: string;
@@ -127,7 +146,11 @@ export default function SuperAdminPage() {
   const [error, setError]         = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [tab, setTab]             = useState<'overview' | 'tenants'>('overview');
+  const [tab, setTab]             = useState<'overview' | 'tenants' | 'inquiries'>('overview');
+  // 問い合わせ
+  const [inquiries, setInquiries]     = useState<ContactInquiry[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [expandedInquiryId, setExpandedInquiryId] = useState<string | null>(null);
   // パスワードリセット
   const [resetUserId, setResetUserId]   = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState('');
@@ -147,10 +170,13 @@ export default function SuperAdminPage() {
     Promise.all([
       fetch('/api/super-admin/tenants').then(r => { if (!r.ok) throw new Error('Forbidden'); return r.json(); }),
       fetch('/api/super-admin/stats').then(r => r.json()),
+      fetch('/api/super-admin/inquiries').then(r => r.json()),
     ])
-      .then(([tenantData, statsData]) => {
+      .then(([tenantData, statsData, inquiryData]) => {
         setTenants(tenantData.tenants);
         setStats(statsData);
+        setInquiries(inquiryData.inquiries ?? []);
+        setUnreadCount(inquiryData.unreadCount ?? 0);
         setLoading(false);
       })
       .catch(() => {
@@ -213,6 +239,16 @@ export default function SuperAdminPage() {
     }
   };
 
+  const markInquiryRead = async (id: string) => {
+    await fetch(`/api/super-admin/inquiries/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isRead: true }),
+    });
+    setInquiries(prev => prev.map(q => q.id === id ? { ...q, isRead: true } : q));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
   const toggleInternal = async (tenantId: string, current: boolean) => {
     setTogglingId(tenantId);
     try {
@@ -263,15 +299,20 @@ export default function SuperAdminPage() {
 
         {/* タブ */}
         <div className="flex gap-1 bg-gray-200 rounded-xl p-1 mb-6">
-          {([['overview', '📊 事業概要'], ['tenants', '🏪 テナント一覧']] as const).map(([key, label]) => (
+          {([['overview', '📊 事業概要'], ['tenants', '🏪 テナント一覧'], ['inquiries', '💬 問い合わせ']] as const).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${
+              className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors relative ${
                 tab === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               {label}
+              {key === 'inquiries' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -627,6 +668,88 @@ export default function SuperAdminPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 問い合わせタブ ── */}
+        {tab === 'inquiries' && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm text-gray-500">
+                全 <span className="font-bold text-gray-800">{inquiries.length}</span> 件
+                {unreadCount > 0 && (
+                  <span className="ml-2 text-red-600 font-bold">未読 {unreadCount} 件</span>
+                )}
+              </p>
+            </div>
+
+            {inquiries.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-sm shadow-sm">
+                問い合わせはまだありません
+              </div>
+            ) : (
+              inquiries.map((q) => (
+                <div
+                  key={q.id}
+                  className={`bg-white rounded-2xl shadow-sm border-2 transition-colors ${
+                    q.isRead ? 'border-gray-100' : 'border-red-200'
+                  }`}
+                >
+                  {/* ヘッダー行 */}
+                  <button
+                    className="w-full text-left px-5 py-4"
+                    onClick={() => {
+                      const isOpening = expandedInquiryId !== q.id;
+                      setExpandedInquiryId(isOpening ? q.id : null);
+                      if (isOpening && !q.isRead) markInquiryRead(q.id);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {!q.isRead && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                      )}
+                      <span className="text-xs bg-gray-100 text-gray-600 font-semibold px-2 py-0.5 rounded-full flex-shrink-0">
+                        {CATEGORY_LABEL[q.category] ?? q.category}
+                      </span>
+                      <span className="text-sm text-gray-700 truncate flex-1">
+                        {q.content.slice(0, 60)}{q.content.length > 60 ? '…' : ''}
+                      </span>
+                      <span className="text-xs text-gray-400 flex-shrink-0">
+                        {new Date(q.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {q.tenantName && (
+                      <div className="flex items-center gap-2 mt-1.5 ml-5">
+                        <span className="text-xs text-gray-400">{q.tenantName}</span>
+                        {q.plan && (
+                          <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">{q.plan}</span>
+                        )}
+                        {q.email && (
+                          <span className="text-xs text-gray-400">{q.email}</span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* 展開内容 */}
+                  {expandedInquiryId === q.id && (
+                    <div className="border-t border-gray-100 px-5 py-4">
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{q.content}</p>
+                      {q.email && (
+                        <div className="mt-4 flex gap-2 items-center">
+                          <a
+                            href={`mailto:${q.email}?subject=【Costra】お問い合わせへの回答`}
+                            className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+                          >
+                            ✉️ {q.email} に返信
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
         )}
