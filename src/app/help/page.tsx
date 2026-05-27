@@ -53,6 +53,14 @@ const PAGE_GUIDES = [
     color: 'border-red-200 hover:border-red-400',
     badge: null,
   },
+  {
+    href: '/help/admin',
+    icon: '🏪',
+    title: '複数店舗・スタッフ管理',
+    desc: 'スタッフアカウントの作成・PWA追加方法',
+    color: 'border-indigo-200 hover:border-indigo-400',
+    badge: 'プロ以上',
+  },
 ];
 
 const QUICK_STEPS = [
