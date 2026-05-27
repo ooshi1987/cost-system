@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import CostraLogo from '@/components/CostraLogo';
 
-interface Store {
-  id: string;
-  name: string;
-}
+interface Store { id: string; name: string; }
 
 interface Tenant {
   id: string;
@@ -22,23 +20,33 @@ interface Tenant {
   createdAt: string;
 }
 
-interface Summary {
-  totalTenants: number;
-  activePaid: number;
-  trialing: number;
-  totalMrr: number;
+interface Stats {
+  summary: {
+    totalTenants: number;
+    totalUsers: number;
+    totalStores: number;
+    totalMenuItems: number;
+    totalIngredients: number;
+    totalDeliveryScans: number;
+    mrr: number;
+    activeStores30d: number;
+    paidCount: number;
+    internalCount: number;
+  };
+  planBreakdown: { free: number; basic: number; pro: number };
+  monthlySignups: { month: string; count: number }[];
+  recentTenants: { id: string; name: string; email: string; plan: string; isInternal: boolean; createdAt: string }[];
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  active:    { label: '有料', color: 'bg-green-100 text-green-700' },
-  trialing:  { label: '試用中', color: 'bg-blue-100 text-blue-700' },
-  past_due:  { label: '支払遅延', color: 'bg-orange-100 text-orange-700' },
-  canceled:  { label: '解約', color: 'bg-gray-100 text-gray-500' },
+  active:   { label: '有料',     color: 'bg-green-100 text-green-700' },
+  trialing: { label: '試用中',   color: 'bg-blue-100 text-blue-700' },
+  past_due: { label: '支払遅延', color: 'bg-orange-100 text-orange-700' },
+  canceled: { label: '解約',     color: 'bg-gray-100 text-gray-500' },
 };
 
 function statusBadge(status: string | null) {
-  const s = status ?? 'free';
-  const cfg = STATUS_LABEL[s] ?? { label: '無料', color: 'bg-gray-100 text-gray-500' };
+  const cfg = STATUS_LABEL[status ?? ''] ?? { label: '無料', color: 'bg-gray-100 text-gray-500' };
   return (
     <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
       {cfg.label}
@@ -46,42 +54,87 @@ function statusBadge(status: string | null) {
   );
 }
 
+/** SVGミニ棒グラフ */
+function BarChart({ data }: { data: { month: string; count: number }[] }) {
+  const max = Math.max(...data.map(d => d.count), 1);
+  const h = 60;
+  const barW = 28;
+  const gap = 8;
+  const w = data.length * (barW + gap) - gap;
+
+  return (
+    <svg width={w} height={h + 20} className="overflow-visible">
+      {data.map((d, i) => {
+        const barH = Math.max((d.count / max) * h, d.count > 0 ? 4 : 0);
+        const x = i * (barW + gap);
+        const y = h - barH;
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={barW} height={barH} rx={4} fill="#f59e0b" opacity={0.85} />
+            {d.count > 0 && (
+              <text x={x + barW / 2} y={y - 4} textAnchor="middle" fontSize={10} fill="#92400e" fontWeight="600">
+                {d.count}
+              </text>
+            )}
+            <text x={x + barW / 2} y={h + 14} textAnchor="middle" fontSize={9} fill="#9ca3af">
+              {d.month}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** プラン内訳ドーナツ風バー */
+function PlanBar({ free, basic, pro }: { free: number; basic: number; pro: number }) {
+  const total = free + basic + pro || 1;
+  const segments = [
+    { label: 'フリー',     value: free,  color: 'bg-gray-300' },
+    { label: 'ベーシック', value: basic, color: 'bg-amber-400' },
+    { label: 'プロ',       value: pro,   color: 'bg-orange-500' },
+  ];
+  return (
+    <div>
+      <div className="flex h-3 rounded-full overflow-hidden gap-0.5 mb-3">
+        {segments.map(s => (
+          <div
+            key={s.label}
+            className={`${s.color} transition-all`}
+            style={{ width: `${(s.value / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <div className="flex gap-4">
+        {segments.map(s => (
+          <div key={s.label} className="flex items-center gap-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+            <span className="text-xs text-gray-500">{s.label} <span className="font-bold text-gray-800">{s.value}</span></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SuperAdminPage() {
   const router = useRouter();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [tenants, setTenants]     = useState<Tenant[]>([]);
+  const [stats, setStats]         = useState<Stats | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-
-  const toggleInternal = async (tenantId: string, current: boolean) => {
-    setTogglingId(tenantId);
-    try {
-      const res = await fetch('/api/super-admin/tenants', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantId, isInternal: !current }),
-      });
-      if (res.ok) {
-        setTenants((prev) =>
-          prev.map((t) => t.id === tenantId ? { ...t, isInternal: !current } : t)
-        );
-      }
-    } finally {
-      setTogglingId(null);
-    }
-  };
+  const [tab, setTab]             = useState<'overview' | 'tenants'>('overview');
 
   useEffect(() => {
-    fetch('/api/super-admin/tenants')
-      .then((r) => {
-        if (!r.ok) throw new Error('Forbidden');
-        return r.json();
-      })
-      .then((data) => {
-        setTenants(data.tenants);
-        setSummary(data.summary);
+    Promise.all([
+      fetch('/api/super-admin/tenants').then(r => { if (!r.ok) throw new Error('Forbidden'); return r.json(); }),
+      fetch('/api/super-admin/stats').then(r => r.json()),
+    ])
+      .then(([tenantData, statsData]) => {
+        setTenants(tenantData.tenants);
+        setStats(statsData);
         setLoading(false);
       })
       .catch(() => {
@@ -96,31 +149,45 @@ export default function SuperAdminPage() {
     router.refresh();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400">読み込み中…</p>
-      </div>
-    );
-  }
+  const toggleInternal = async (tenantId: string, current: boolean) => {
+    setTogglingId(tenantId);
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, isInternal: !current }),
+      });
+      if (res.ok) {
+        setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, isInternal: !current } : t));
+      }
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <p className="text-gray-400">読み込み中…</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <p className="text-red-500">{error}</p>
+    </div>
+  );
+
+  const s = stats?.summary;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-6">
 
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Super Admin</p>
-            <h1 className="text-2xl font-bold text-gray-800">管理コンソール</h1>
+          <div className="flex items-center gap-3">
+            <CostraLogo size={28} />
+            <span className="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">運営管理</span>
           </div>
           <button
             onClick={handleLogout}
@@ -130,154 +197,210 @@ export default function SuperAdminPage() {
           </button>
         </div>
 
-        {/* KPIサマリ */}
-        {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-gray-800">{summary.totalTenants}</p>
-              <p className="text-xs text-gray-400 mt-0.5">全テナント</p>
+        {/* タブ */}
+        <div className="flex gap-1 bg-gray-200 rounded-xl p-1 mb-6">
+          {([['overview', '📊 事業概要'], ['tenants', '🏪 テナント一覧']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${
+                tab === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── 事業概要タブ ── */}
+        {tab === 'overview' && s && (
+          <div className="flex flex-col gap-5">
+
+            {/* KPI上段 */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: '総テナント数',   value: s.totalTenants,    unit: '社', color: 'text-gray-800' },
+                { label: '有料契約',        value: s.paidCount,       unit: '社', color: 'text-green-600' },
+                { label: 'MRR',             value: `¥${s.mrr.toLocaleString()}`, unit: '', color: 'text-amber-600' },
+                { label: '30日アクティブ', value: s.activeStores30d, unit: '店舗', color: 'text-blue-600' },
+              ].map(k => (
+                <div key={k.label} className="bg-white rounded-2xl p-4 shadow-sm text-center">
+                  <p className={`text-2xl font-extrabold ${k.color}`}>{k.value}<span className="text-sm font-normal text-gray-400 ml-0.5">{k.unit}</span></p>
+                  <p className="text-xs text-gray-400 mt-0.5">{k.label}</p>
+                </div>
+              ))}
             </div>
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-green-600">{summary.activePaid}</p>
-              <p className="text-xs text-gray-400 mt-0.5">有料契約</p>
+
+            {/* KPI下段 */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: '総ユーザー数',   value: s.totalUsers,         unit: '人', icon: '👤' },
+                { label: '総メニュー数',   value: s.totalMenuItems,     unit: '品', icon: '📋' },
+                { label: 'スキャン総数',   value: s.totalDeliveryScans, unit: '件', icon: '📸' },
+              ].map(k => (
+                <div key={k.label} className="bg-white rounded-2xl p-3 shadow-sm text-center">
+                  <div className="text-xl mb-1">{k.icon}</div>
+                  <p className="text-xl font-bold text-gray-800">{k.value.toLocaleString()}<span className="text-xs font-normal text-gray-400 ml-0.5">{k.unit}</span></p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{k.label}</p>
+                </div>
+              ))}
             </div>
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-blue-600">{summary.trialing}</p>
-              <p className="text-xs text-gray-400 mt-0.5">試用中</p>
+
+            {/* 月別登録推移 */}
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <h2 className="text-sm font-bold text-gray-700 mb-4">📈 月別新規登録（直近6ヶ月）</h2>
+              <div className="overflow-x-auto">
+                <BarChart data={stats!.monthlySignups} />
+              </div>
             </div>
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-2xl font-bold text-amber-600">
-                ¥{summary.totalMrr.toLocaleString()}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">月次売上（MRR）</p>
+
+            {/* プラン内訳 */}
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <h2 className="text-sm font-bold text-gray-700 mb-4">📊 プラン内訳</h2>
+              <PlanBar
+                free={stats!.planBreakdown.free}
+                basic={stats!.planBreakdown.basic}
+                pro={stats!.planBreakdown.pro}
+              />
+              {s.internalCount > 0 && (
+                <p className="text-xs text-purple-500 mt-3">※ 社内アカウント {s.internalCount}社 を含む</p>
+              )}
             </div>
+
+            {/* 直近の新規登録 */}
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b">
+                <h2 className="text-sm font-bold text-gray-700">🆕 直近の新規登録</h2>
+              </div>
+              <div className="divide-y">
+                {stats!.recentTenants.map(t => (
+                  <div key={t.id} className="px-5 py-3 flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-800">{t.name}</span>
+                        {t.isInternal && (
+                          <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded-full">社内</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400">{t.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-400">
+                        {new Date(t.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        t.plan === 'pro' ? 'bg-orange-100 text-orange-600' :
+                        t.plan === 'basic' ? 'bg-amber-100 text-amber-600' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>{t.plan}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
 
-        {/* テナント一覧 */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b">
-            <h2 className="font-semibold text-gray-700 text-sm">テナント一覧</h2>
-          </div>
+        {/* ── テナント一覧タブ ── */}
+        {tab === 'tenants' && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b flex items-center justify-between">
+              <h2 className="font-semibold text-gray-700 text-sm">テナント一覧 <span className="text-gray-400 font-normal">({tenants.length}社)</span></h2>
+            </div>
 
-          {tenants.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">テナントがありません</div>
-          ) : (
-            <div className="divide-y">
-              {tenants.map((t) => (
-                <div key={t.id}>
-                  {/* メイン行 */}
-                  <button
-                    className="w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors"
-                    onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
+            {tenants.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">テナントがありません</div>
+            ) : (
+              <div className="divide-y">
+                {tenants.map((t) => (
+                  <div key={t.id}>
+                    <button
+                      className="w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors"
+                      onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                    >
+                      <div className="flex items-center justify-between">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-gray-800 truncate">{t.name}</span>
                             {statusBadge(t.subscriptionStatus)}
                             {t.isInternal && (
-                              <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">
-                                社内
-                              </span>
+                              <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">社内</span>
                             )}
                           </div>
                           <p className="text-xs text-gray-400 mt-0.5 truncate">{t.email}</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4 ml-4 shrink-0 text-right">
-                        <div className="hidden sm:block">
-                          <p className="text-sm font-semibold text-amber-600">
-                            ¥{t.mrr.toLocaleString()}
-                            <span className="text-xs text-gray-400 font-normal">/月</span>
-                          </p>
+                        <div className="flex items-center gap-4 ml-4 shrink-0">
+                          <div className="hidden sm:block text-xs text-gray-400">
+                            <span>{t.storeCount}店舗</span>
+                            <span className="mx-1">·</span>
+                            <span>{t.userCount}ユーザー</span>
+                          </div>
+                          <span className="text-gray-300 text-sm">{expandedId === t.id ? '▲' : '▼'}</span>
                         </div>
-                        <div className="hidden sm:block text-xs text-gray-400">
-                          <span>{t.storeCount}店舗</span>
-                          <span className="mx-1">·</span>
-                          <span>{t.userCount}ユーザー</span>
-                        </div>
-                        <span className="text-gray-300 text-sm">{expandedId === t.id ? '▲' : '▼'}</span>
                       </div>
-                    </div>
-                  </button>
+                    </button>
 
-                  {/* 展開詳細 */}
-                  {expandedId === t.id && (
-                    <div className="bg-gray-50 border-t px-5 py-4">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-400">月額/店舗</p>
-                          <p className="font-semibold">
-                            {t.pricePerStore > 0 ? `¥${t.pricePerStore.toLocaleString()}` : '—'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400">MRR</p>
-                          <p className="font-semibold text-amber-600">
-                            ¥{t.mrr.toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400">登録日</p>
-                          <p className="font-semibold">
-                            {new Date(t.createdAt).toLocaleDateString('ja-JP')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400">ステータス</p>
-                          <p>{statusBadge(t.subscriptionStatus)}</p>
-                        </div>
-                      </div>
-
-                      {/* 社内アカウントトグル */}
-                      <div className="flex items-center justify-between bg-white border rounded-xl px-4 py-3 mb-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700">社内アカウント（課金スキップ）</p>
-                          <p className="text-xs text-gray-400">ONにするとPro相当の機能を無料で利用可能</p>
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleInternal(t.id, t.isInternal); }}
-                          disabled={togglingId === t.id}
-                          className={`relative w-12 h-6 rounded-full transition-colors ${
-                            t.isInternal ? 'bg-purple-500' : 'bg-gray-200'
-                          } ${togglingId === t.id ? 'opacity-50' : ''}`}
-                        >
-                          <span
-                            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                              t.isInternal ? 'translate-x-7' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                      </div>
-
-                      {t.stores.length > 0 && (
-                        <div>
-                          <p className="text-xs text-gray-400 mb-1">店舗</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {t.stores.map((s) => (
-                              <span
-                                key={s.id}
-                                className="text-xs bg-white border rounded-full px-2.5 py-1 text-gray-600"
-                              >
-                                {s.name}
-                              </span>
-                            ))}
+                    {expandedId === t.id && (
+                      <div className="bg-gray-50 border-t px-5 py-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-400">月額/店舗</p>
+                            <p className="font-semibold">{t.pricePerStore > 0 ? `¥${t.pricePerStore.toLocaleString()}` : '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">MRR</p>
+                            <p className="font-semibold text-amber-600">¥{t.mrr.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">登録日</p>
+                            <p className="font-semibold">{new Date(t.createdAt).toLocaleDateString('ja-JP')}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">ステータス</p>
+                            <p>{statusBadge(t.subscriptionStatus)}</p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <p className="text-center text-xs text-gray-300 mt-6">
-          Super Admin Console · {new Date().getFullYear()}
-        </p>
+                        {/* 社内アカウントトグル */}
+                        <div className="flex items-center justify-between bg-white border rounded-xl px-4 py-3 mb-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-700">社内アカウント（課金スキップ）</p>
+                            <p className="text-xs text-gray-400">ONにするとPro相当の機能を無料で利用可能</p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleInternal(t.id, t.isInternal); }}
+                            disabled={togglingId === t.id}
+                            className={`relative w-12 h-6 rounded-full transition-colors ${
+                              t.isInternal ? 'bg-purple-500' : 'bg-gray-200'
+                            } ${togglingId === t.id ? 'opacity-50' : ''}`}
+                          >
+                            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                              t.isInternal ? 'translate-x-7' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+
+                        {t.stores.length > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">店舗</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {t.stores.map(s => (
+                                <span key={s.id} className="text-xs bg-white border rounded-full px-2.5 py-1 text-gray-600">{s.name}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <p className="text-center text-xs text-gray-300 mt-6">Costra Admin Console · {new Date().getFullYear()}</p>
       </div>
     </div>
   );
