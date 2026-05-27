@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true },
         },
         users: {
-          select: { id: true, role: true },
+          select: { id: true, email: true, name: true, role: true },
         },
       },
     });
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
         userCount,
         mrr,
         stores: t.stores,
+        users: t.users,
         createdAt: t.createdAt,
       };
     });
@@ -65,6 +67,25 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch tenants' }, { status: 500 });
+  }
+}
+
+/** パスワードリセット */
+export async function PUT(request: NextRequest) {
+  if (!(await isSuperAdmin(request))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  try {
+    const { userId, newPassword } = await request.json();
+    if (!userId || !newPassword || newPassword.length < 4) {
+      return NextResponse.json({ error: 'userId と newPassword（4文字以上）は必須です' }, { status: 400 });
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 });
   }
 }
 

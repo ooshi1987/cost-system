@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import CostraLogo from '@/components/CostraLogo';
 
 interface Store { id: string; name: string; }
+interface TenantUser { id: string; email: string; name: string | null; role: string; }
 
 interface Tenant {
   id: string;
@@ -17,6 +18,7 @@ interface Tenant {
   userCount: number;
   mrr: number;
   stores: Store[];
+  users: TenantUser[];
   createdAt: string;
 }
 
@@ -126,6 +128,11 @@ export default function SuperAdminPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [tab, setTab]             = useState<'overview' | 'tenants'>('overview');
+  // パスワードリセット
+  const [resetUserId, setResetUserId]   = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg, setResetMsg]         = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -147,6 +154,27 @@ export default function SuperAdminPage() {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
     router.refresh();
+  };
+
+  const resetUserPassword = async () => {
+    if (!resetUserId || resetPassword.length < 4) return;
+    setResetLoading(true); setResetMsg(null);
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: resetUserId, newPassword: resetPassword }),
+      });
+      if (res.ok) {
+        setResetMsg({ ok: true, text: 'パスワードを変更しました' });
+        setResetPassword('');
+        setTimeout(() => { setResetUserId(null); setResetMsg(null); }, 2000);
+      } else {
+        setResetMsg({ ok: false, text: '変更に失敗しました' });
+      }
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const toggleInternal = async (tenantId: string, current: boolean) => {
@@ -381,7 +409,71 @@ export default function SuperAdminPage() {
                           </button>
                         </div>
 
-                        {t.stores.length > 0 && (
+                        {/* ユーザー一覧 */}
+                      {t.users.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-400 mb-2">👤 ユーザー一覧</p>
+                          <div className="flex flex-col gap-1.5">
+                            {t.users.map(u => (
+                              <div key={u.id} className="bg-white border rounded-xl px-3 py-2.5 flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-800 truncate">{u.email}</span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${u.role === 'tenant_admin' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      {u.role === 'tenant_admin' ? '管理者' : 'スタッフ'}
+                                    </span>
+                                  </div>
+                                  {u.name && <p className="text-xs text-gray-400">{u.name}</p>}
+                                </div>
+                                <button
+                                  onClick={() => { setResetUserId(u.id); setResetPassword(''); setResetMsg(null); }}
+                                  className="text-xs text-blue-500 hover:text-blue-700 font-semibold shrink-0 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                >
+                                  PW変更
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* パスワードリセットフォーム */}
+                          {t.users.some(u => u.id === resetUserId) && (
+                            <div className="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-3">
+                              <p className="text-xs font-semibold text-blue-700 mb-2">
+                                🔑 {t.users.find(u => u.id === resetUserId)?.email} のパスワード変更
+                              </p>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={resetPassword}
+                                  onChange={e => setResetPassword(e.target.value)}
+                                  placeholder="新しいパスワード（4文字以上）"
+                                  className="flex-1 text-sm border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 bg-white"
+                                />
+                                <button
+                                  onClick={resetUserPassword}
+                                  disabled={resetLoading || resetPassword.length < 4}
+                                  className="text-xs font-bold bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white px-3 py-2 rounded-lg transition-colors"
+                                >
+                                  {resetLoading ? '…' : '変更'}
+                                </button>
+                                <button
+                                  onClick={() => { setResetUserId(null); setResetMsg(null); }}
+                                  className="text-xs text-gray-400 hover:text-gray-600 px-2"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              {resetMsg && (
+                                <p className={`text-xs mt-1.5 font-semibold ${resetMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+                                  {resetMsg.ok ? '✅' : '❌'} {resetMsg.text}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {t.stores.length > 0 && (
                           <div>
                             <p className="text-xs text-gray-400 mb-1">店舗</p>
                             <div className="flex flex-wrap gap-1.5">
