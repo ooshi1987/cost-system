@@ -86,7 +86,6 @@ export default function Sidebar() {
 
   const hidden =
     HIDDEN_PATHS.includes(pathname) ||
-    pathname.startsWith('/super-admin') ||
     pathname.startsWith('/design');
 
   useEffect(() => {
