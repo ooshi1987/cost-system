@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="ja">
+<head>
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costra — AIで、原価管理を今日のうちに</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/design/styles.css">
+</head>
+<body>
+
+<!-- ───── NAV ───── -->
+<header class="nav">
+  <div class="nav__inner wrap">
+    <a href="/" class="logo" aria-label="Costra">
+      <span class="logo__mark" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/><path d="M9 14h10M14 9v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      <span class="logo__word">Costra</span>
+    </a>
+    <nav class="nav__links">
+      <a href="#pain">課題</a>
+      <a href="#features">機能</a>
+      <a href="#product">プロダクト</a>
+      <a href="#pricing">料金</a>
+    </nav>
+    <div class="nav__cta">
+      <a href="/login" class="btn btn--ghost">ログイン</a>
+      <a href="/signup" class="btn btn--solid">無料で試す</a>
+    </div>
+  </div>
+</header>
+
+<!-- ───── HERO ───── -->
+<section class="hero">
+  <div class="wrap hero__inner">
+    <div class="hero__copy">
+      <div class="eyebrow">
+        <span class="eyebrow__dot" aria-hidden="true"></span>
+        AI COST MANAGEMENT&nbsp;/&nbsp;FOR RESTAURANTS
+      </div>
+      <h1 class="hero__title">
+        撮るだけで、<br>
+        原価が、<em>読める。</em>
+      </h1>
+      <p class="hero__sub">
+        仕入れ伝票をスマホで撮影するだけ。AIが品目・数量・単価を読み取り、レシピ単位の原価率まで自動で算出します。<br class="hide-sm">勘の経営から、データの経営へ。
+      </p>
+      <div class="hero__ctas">
+        <a href="/signup" class="btn btn--solid btn--lg">
+          14日間 無料で試す
+          <span class="btn__arrow" aria-hidden="true">→</span>
+        </a>
+        <a href="#product" class="btn btn--text btn--lg">
+          <span class="play-icon" aria-hidden="true">▶</span>
+          2分でわかるデモを見る
+        </a>
+      </div>
+      <div class="hero__meta">
+        <span class="meta-dot"></span>クレジットカード不要
+        <span class="meta-sep"></span>
+        <span class="meta-dot"></span>1分で導入
+      </div>
+    </div>
+
+    <!-- Product preview card -->
+    <div class="hero__preview" aria-hidden="true">
+      <div class="preview-stack">
+
+        <!-- Receipt photo card -->
+        <div class="card card--receipt">
+          <div class="card__chrome">
+            <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+            <span class="card__title">仕入れ伝票.jpg</span>
+          </div>
+          <div class="receipt">
+            <div class="receipt__paper">
+              <div class="receipt__head">
+                <div class="receipt__brand">青果 まるはち</div>
+                <div class="receipt__date">2026.05.28</div>
+              </div>
+              <div class="receipt__row"><span>トマト 4kg</span><span>¥2,480</span></div>
+              <div class="receipt__row"><span>玉ねぎ 5kg</span><span>¥1,200</span></div>
+              <div class="receipt__row"><span>バジル 100g</span><span>¥680</span></div>
+              <div class="receipt__row"><span>モッツァレラ 1kg</span><span>¥3,200</span></div>
+              <div class="receipt__row"><span>オリーブ油 2L</span><span>¥2,840</span></div>
+              <div class="receipt__total"><span>合計</span><span>¥10,400</span></div>
+            </div>
+            <div class="scan-line" aria-hidden="true"></div>
+            <div class="scan-tag">AI OCR<span class="dot-pulse"></span></div>
+          </div>
+        </div>
+
+        <!-- Dashboard card -->
+        <div class="card card--dash">
+          <div class="card__chrome card__chrome--dark">
+            <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+            <span class="card__title">今日の原価率 — 2026.05.28</span>
+            <span class="live"><span class="live__dot"></span>LIVE</span>
+          </div>
+          <div class="dash">
+            <div class="dash__hero">
+              <div class="dash__label">本日の原価率</div>
+              <div class="dash__num"><span class="js-count" data-target="32.4">32.4</span><span class="dash__pct">%</span></div>
+              <div class="dash__delta dash__delta--down">▼ 1.8pt&nbsp;<span>前週比</span></div>
+            </div>
+            <div class="dash__chart" aria-hidden="true">
+              <svg viewBox="0 0 220 70" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stop-color="#c84a1f" stop-opacity=".22"/>
+                    <stop offset="1" stop-color="#c84a1f" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0 40 L20 35 L40 42 L60 38 L80 50 L100 45 L120 52 L140 40 L160 35 L180 38 L200 28 L220 30 L220 70 L0 70 Z" fill="url(#g)"/>
+                <path d="M0 40 L20 35 L40 42 L60 38 L80 50 L100 45 L120 52 L140 40 L160 35 L180 38 L200 28 L220 30" fill="none" stroke="#c84a1f" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="220" cy="30" r="3" fill="#c84a1f"/>
+              </svg>
+              <div class="chart__labels">
+                <span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span><span>日</span>
+              </div>
+            </div>
+            <div class="dash__rows">
+              <div class="dash__row">
+                <span class="dash__name">マルゲリータ</span>
+                <span class="dash__bar"><span style="width:28%"></span></span>
+                <span class="dash__val">28.1%</span>
+              </div>
+              <div class="dash__row">
+                <span class="dash__name">トマト&バジルパスタ</span>
+                <span class="dash__bar"><span style="width:34%"></span></span>
+                <span class="dash__val">34.2%</span>
+              </div>
+              <div class="dash__row">
+                <span class="dash__name">カプレーゼ</span>
+                <span class="dash__bar dash__bar--warn"><span style="width:46%"></span></span>
+                <span class="dash__val dash__val--warn">46.7%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating insight chip -->
+        <div class="chip-insight" aria-hidden="true">
+          <span class="chip-insight__icon">✦</span>
+          <div>
+            <div class="chip-insight__title">モッツァレラ、先週比 +12%</div>
+            <div class="chip-insight__sub">仕入先の切替を提案中</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Faint logo strip -->
+  <div class="wrap logos">
+    <div class="logos__label">飲食店オーナーに選ばれています</div>
+    <div class="logos__row">
+      <span>BISTRO&nbsp;NORD</span>
+      <span>うどん 仁屋</span>
+      <span>Trattoria Sole</span>
+      <span>炭火 月読</span>
+      <span>cafe — POEM</span>
+      <span>麺屋 燈</span>
+    </div>
+  </div>
+</section>
+
+<!-- ───── PAIN ───── -->
+<section class="pain" id="pain">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow"><span class="eyebrow__dot"></span>個人店オーナーの、よくある悩み</div>
+      <h2 class="section-title">
+        「原価率、本当は<br>毎日見たい。」
+      </h2>
+      <p class="section-lede">
+        月末にならないと分からない。スタッフの手入力に頼っている。<br>そんな状況のままでは、利益は守れません。
+      </p>
+    </div>
+
+    <div class="pain__grid">
+      <article class="pain__card">
+        <div class="pain__num">01</div>
+        <h3 class="pain__title">毎月20時間、<br>伝票入力に消えていく</h3>
+        <p class="pain__body">エクセルに手入力、計算式は壊れる、月末は徹夜。本来やるべき仕込みや接客の時間が、事務作業に削られていく。</p>
+        <div class="pain__meta">
+          <span class="pain__metric">20<small>h/月</small></span>
+          <span class="pain__metric-label">平均事務作業時間</span>
+        </div>
+      </article>
+
+      <article class="pain__card pain__card--accent">
+        <div class="pain__num">02</div>
+        <h3 class="pain__title">気付いた時には、<br>もう赤字の月</h3>
+        <p class="pain__body">月次決算で原価率の悪化に気付いても、もう打ち手は次の月から。<em>「今日」</em>分かっていれば、すぐ動けたはずなのに。</p>
+        <div class="pain__meta">
+          <span class="pain__metric">+30<small>日</small></span>
+          <span class="pain__metric-label">判断までの遅れ</span>
+        </div>
+      </article>
+
+      <article class="pain__card">
+        <div class="pain__num">03</div>
+        <h3 class="pain__title">売れているのに、<br>実は儲かっていない</h3>
+        <p class="pain__body">人気メニューが、実は赤字商品。レシピ単位の原価が見えなければ、値付けもメニュー改廃も、結局は勘に頼るしかない。</p>
+        <div class="pain__meta">
+          <span class="pain__metric">42<small>%</small></span>
+          <span class="pain__metric-label">赤字メニュー比率*</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="pain__footnote">
+      <span>*</span> Costra 導入前ユーザーの自己申告データ（n=128）
+    </div>
+  </div>
+</section>
+
+<!-- ───── FEATURES ───── -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <div class="eyebrow"><span class="eyebrow__dot"></span>3つの中核機能</div>
+      <h2 class="section-title">
+        伝票を撮るだけで、<br>原価管理が、終わっている。
+      </h2>
+    </div>
+
+    <!-- Feature 1: OCR -->
+    <article class="feature feature--reverse">
+      <div class="feature__copy">
+        <div class="feature__tag">FEATURE 01 — AI 伝票 OCR</div>
+        <h3 class="feature__title">紙の伝票を、<br>1秒で<em>データ</em>に。</h3>
+        <p class="feature__body">
+          仕入れ伝票・納品書をスマホで撮影するだけ。Costra のAIが品目・数量・単価・税区分まで自動で読み取り、原価データベースに即時反映します。手入力は、もう要りません。
+        </p>
+        <ul class="feature__list">
+          <li><span class="check">✓</span> 手書き伝票・サーマル紙にも対応</li>
+          <li><span class="check">✓</span> 品目名は過去履歴から自動マッチング</li>
+          <li><span class="check">✓</span> 複数枚一括アップロードもOK</li>
+        </ul>
+      </div>
+      <div class="feature__visual">
+        <div class="ocr-demo">
+          <div class="ocr-demo__photo">
+            <div class="ocr-photo">
+              <div class="ocr-photo__paper">
+                <div class="receipt__head">
+                  <div class="receipt__brand">青果 まるはち</div>
+                  <div class="receipt__date">2026.05.28</div>
+                </div>
+                <div class="receipt__row"><span>トマト 4kg</span><span>¥2,480</span></div>
+                <div class="receipt__row"><span>玉ねぎ 5kg</span><span>¥1,200</span></div>
+                <div class="receipt__row"><span>バジル 100g</span><span>¥680</span></div>
+                <div class="receipt__row"><span>モッツァレラ 1kg</span><span>¥3,200</span></div>
+              </div>
+              <div class="ocr-bbox" style="top:24%;left:8%;width:54%;height:9%"></div>
+              <div class="ocr-bbox" style="top:36%;left:8%;width:54%;height:9%"></div>
+              <div class="ocr-bbox" style="top:48%;left:8%;width:54%;height:9%"></div>
+              <div class="ocr-bbox ocr-bbox--active" style="top:60%;left:8%;width:54%;height:9%"></div>
+            </div>
+          </div>
+          <div class="ocr-demo__arrow" aria-hidden="true">
+            <svg viewBox="0 0 60 24" fill="none"><path d="M2 12h54m0 0l-8-8m8 8l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ocr-demo__table">
+            <div class="ocr-table__head">
+              <span>品目</span><span>数量</span><span>単価</span><span>状態</span>
+            </div>
+            <div class="ocr-table__row"><span>トマト</span><span>4&nbsp;kg</span><span>¥620</span><span class="pill pill--ok">確定</span></div>
+            <div class="ocr-table__row"><span>玉ねぎ</span><span>5&nbsp;kg</span><span>¥240</span><span class="pill pill--ok">確定</span></div>
+            <div class="ocr-table__row"><span>バジル</span><span>100&nbsp;g</span><span>¥680</span><span class="pill pill--ok">確定</span></div>
+            <div class="ocr-table__row ocr-table__row--active"><span>モッツァレラ</span><span>1&nbsp;kg</span><span>¥3,200</span><span class="pill pill--scan">読取中</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Feature 2: Real-time dashboard -->
+    <article class="feature">
+      <div class="feature__copy">
+        <div class="feature__tag">FEATURE 02 — REAL-TIME DASHBOARD</div>
+        <h3 class="feature__title">今日の原価率は、<br><em>今日</em>のうちに。</h3>
+        <p class="feature__body">
+          仕入れと売上が反映された瞬間に、原価率は再計算。日次・週次・月次、すべての粒度でリアルタイムに把握できます。月末を待つ経営は、もう終わりです。
+        </p>
+        <ul class="feature__list">
+          <li><span class="check">✓</span> 目標原価率の達成度を日次で可視化</li>
+          <li><span class="check">✓</span> 異常値はSlack/LINEに自動通知</li>
+          <li><span class="check">✓</span> 仕入先別・カテゴリ別の内訳</li>
+        </ul>
+      </div>
+      <div class="feature__visual">
+        <div class="dash-demo">
+          <div class="dash-demo__top">
+            <div class="kpi">
+              <div class="kpi__label">本日の原価率</div>
+              <div class="kpi__num">32.4<span>%</span></div>
+              <div class="kpi__delta kpi__delta--down">▼ 1.8pt</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi__label">今月平均</div>
+              <div class="kpi__num">33.7<span>%</span></div>
+              <div class="kpi__delta">目標 34.0%</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi__label">仕入総額（月）</div>
+              <div class="kpi__num">¥1.42<span>M</span></div>
+              <div class="kpi__delta kpi__delta--up">▲ 4.2%</div>
+            </div>
+          </div>
+          <div class="dash-demo__chart">
+            <div class="chart__title">
+              <span>日次推移</span>
+              <span class="chart__legend"><i style="background:#c84a1f"></i>原価率 <i style="background:#1a1815;opacity:.25"></i>目標</span>
+            </div>
+            <svg viewBox="0 0 400 130" preserveAspectRatio="none">
+              <line x1="0" y1="40" x2="400" y2="40" stroke="#1a1815" stroke-opacity=".12" stroke-dasharray="3 4"/>
+              <text x="396" y="36" text-anchor="end" font-size="9" fill="#1a1815" opacity=".5" font-family="JetBrains Mono">目標 34%</text>
+              <path d="M0 60 L33 55 L66 70 L100 60 L133 80 L166 72 L200 88 L233 60 L266 50 L300 58 L333 42 L366 50 L400 38" fill="none" stroke="#c84a1f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g fill="#c84a1f">
+                <circle cx="0" cy="60" r="2.5"/><circle cx="33" cy="55" r="2.5"/><circle cx="66" cy="70" r="2.5"/><circle cx="100" cy="60" r="2.5"/><circle cx="133" cy="80" r="2.5"/><circle cx="166" cy="72" r="2.5"/><circle cx="200" cy="88" r="2.5"/><circle cx="233" cy="60" r="2.5"/><circle cx="266" cy="50" r="2.5"/><circle cx="300" cy="58" r="2.5"/><circle cx="333" cy="42" r="2.5"/><circle cx="366" cy="50" r="2.5"/>
+                <circle cx="400" cy="38" r="4" stroke="#fff" stroke-width="2"/>
+              </g>
+            </svg>
+            <div class="chart__xaxis">
+              <span>5/1</span><span>5/5</span><span>5/10</span><span>5/15</span><span>5/20</span><span>5/25</span><span>本日</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Feature 3: Recipe cost -->
+    <article class="feature feature--reverse">
+      <div class="feature__copy">
+        <div class="feature__tag">FEATURE 03 — RECIPE-LEVEL COSTING</div>
+        <h3 class="feature__title">どのメニューで<br>稼げているか、<em>一目で</em>。</h3>
+        <p class="feature__body">
+          レシピの材料・分量・歩留まりを登録するだけで、1皿あたりの原価と利益額が自動計算。仕入価格が変動すれば、全レシピの原価も連動して更新されます。
+        </p>
+        <ul class="feature__list">
+          <li><span class="check">✓</span> 仕入価格変動を全レシピに即反映</li>
+          <li><span class="check">✓</span> 売れ筋×粗利の四象限マッピング</li>
+          <li><span class="check">✓</span> 値上げシミュレーターを内蔵</li>
+        </ul>
+      </div>
+      <div class="feature__visual">
+        <div class="recipe-demo">
+          <div class="recipe-card">
+            <div class="recipe-card__head">
+              <div>
+                <div class="recipe-card__name">マルゲリータ</div>
+                <div class="recipe-card__sub">ピザ / レギュラー</div>
+              </div>
+              <div class="recipe-card__price">
+                <span>¥1,580</span>
+                <small>売価</small>
+              </div>
+            </div>
+            <div class="recipe-card__ings">
+              <div class="ing"><span>ピザ生地</span><span class="ing__amt">220g</span><span class="ing__cost">¥84</span></div>
+              <div class="ing"><span>トマトソース</span><span class="ing__amt">60g</span><span class="ing__cost">¥38</span></div>
+              <div class="ing"><span>モッツァレラ</span><span class="ing__amt">120g</span><span class="ing__cost">¥240</span><span class="ing__up">▲</span></div>
+              <div class="ing"><span>バジル</span><span class="ing__amt">3枚</span><span class="ing__cost">¥18</span></div>
+              <div class="ing"><span>オリーブ油</span><span class="ing__amt">5ml</span><span class="ing__cost">¥7</span></div>
+            </div>
+            <div class="recipe-card__bottom">
+              <div>
+                <div class="recipe-card__label">原価</div>
+                <div class="recipe-card__value">¥387</div>
+              </div>
+              <div>
+                <div class="recipe-card__label">原価率</div>
+                <div class="recipe-card__value recipe-card__value--accent">24.5%</div>
+              </div>
+              <div>
+                <div class="recipe-card__label">粗利</div>
+                <div class="recipe-card__value">¥1,193</div>
+              </div>
+            </div>
+          </div>
+          <div class="quad">
+            <div class="quad__title">売れ筋 × 粗利 マップ</div>
+            <div class="quad__grid">
+              <div class="quad__axis quad__axis--y"><span>粗利 高</span><span>粗利 低</span></div>
+              <div class="quad__axis quad__axis--x"><span>売上 少</span><span>売上 多</span></div>
+              <div class="quad__plot">
+                <span class="quad__line quad__line--h"></span>
+                <span class="quad__line quad__line--v"></span>
+                <span class="quad__lbl quad__lbl--tl">育てる</span>
+                <span class="quad__lbl quad__lbl--tr quad__lbl--star">★ 看板</span>
+                <span class="quad__lbl quad__lbl--bl">改廃</span>
+                <span class="quad__lbl quad__lbl--br">テコ入れ</span>
+                <span class="dot-plot" style="top:24%;left:78%">マルゲリータ</span>
+                <span class="dot-plot" style="top:38%;left:62%">ボロネーゼ</span>
+                <span class="dot-plot dot-plot--warn" style="top:68%;left:74%">カプレーゼ</span>
+                <span class="dot-plot" style="top:30%;left:30%">きのこリゾット</span>
+                <span class="dot-plot dot-plot--mute" style="top:72%;left:22%">魚介サラダ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ───── PRODUCT SHOWCASE ───── -->
+<section class="product" id="product">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <div class="eyebrow eyebrow--dark"><span class="eyebrow__dot"></span>プロダクトを見る</div>
+      <h2 class="section-title section-title--light">
+        全店舗のお金の流れが、<br>このひと画面に。
+      </h2>
+    </div>
+
+    <div class="product__screen">
+      <div class="screen">
+        <div class="screen__chrome">
+          <span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span>
+          <div class="screen__url">app.costra.jp / dashboard</div>
+        </div>
+        <div class="screen__body">
+          <aside class="screen__side">
+            <div class="side__brand">
+              <span class="side__mark"><svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/><path d="M9 14h10M14 9v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              Costra
+            </div>
+            <div class="side__store">
+              <div class="side__store-name">Trattoria Sole</div>
+              <div class="side__store-sub">代々木店 ▾</div>
+            </div>
+            <nav class="side__nav">
+              <a class="side__item side__item--active"><span>◐</span>ダッシュボード</a>
+              <a class="side__item"><span>▢</span>仕入れ</a>
+              <a class="side__item"><span>○</span>レシピ</a>
+              <a class="side__item"><span>△</span>メニュー</a>
+              <a class="side__item"><span>◇</span>レポート</a>
+              <a class="side__item"><span>⌘</span>設定</a>
+            </nav>
+            <div class="side__foot">
+              <div class="side__plan">Standard プラン</div>
+              <div class="side__user"><span class="avatar">M</span>水沢 健太</div>
+            </div>
+          </aside>
+          <main class="screen__main">
+            <div class="screen__topbar">
+              <div>
+                <div class="screen__crumbs">ダッシュボード / 本日</div>
+                <h4 class="screen__heading">こんばんは、水沢さん。</h4>
+              </div>
+              <div class="screen__tools">
+                <span class="tool-pill">本日 2026.05.28</span>
+                <span class="tool-pill tool-pill--solid">＋ 伝票を追加</span>
+              </div>
+            </div>
+
+            <div class="screen__kpis">
+              <div class="kpi-lg">
+                <div class="kpi-lg__label">本日の原価率</div>
+                <div class="kpi-lg__num">32.4<span>%</span></div>
+                <div class="kpi-lg__trend kpi-lg__trend--down">▼ 1.8pt / 前週比</div>
+                <div class="kpi-lg__bar">
+                  <span style="width:32.4%"></span>
+                  <i style="left:34%" title="目標 34.0%"></i>
+                </div>
+                <div class="kpi-lg__scale"><span>0%</span><span>目標 34%</span><span>50%</span></div>
+              </div>
+              <div class="kpi-sm-stack">
+                <div class="kpi-sm">
+                  <div class="kpi-sm__label">仕入総額（月）</div>
+                  <div class="kpi-sm__num">¥1,423,820</div>
+                  <div class="kpi-sm__delta">▲ 4.2%</div>
+                </div>
+                <div class="kpi-sm">
+                  <div class="kpi-sm__label">登録レシピ数</div>
+                  <div class="kpi-sm__num">42<span>品</span></div>
+                  <div class="kpi-sm__delta">先月 +3</div>
+                </div>
+                <div class="kpi-sm">
+                  <div class="kpi-sm__label">未処理伝票</div>
+                  <div class="kpi-sm__num kpi-sm__num--accent">2<span>枚</span></div>
+                  <div class="kpi-sm__delta">→ 確認する</div>
+                </div>
+                <div class="kpi-sm">
+                  <div class="kpi-sm__label">AI 提案</div>
+                  <div class="kpi-sm__num kpi-sm__num--accent">3<span>件</span></div>
+                  <div class="kpi-sm__delta">→ 確認する</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="screen__split">
+              <div class="panel">
+                <div class="panel__head">
+                  <h5>原価率 — 5月推移</h5>
+                  <div class="panel__tabs">
+                    <span class="panel__tab">日</span>
+                    <span class="panel__tab panel__tab--active">週</span>
+                    <span class="panel__tab">月</span>
+                  </div>
+                </div>
+                <svg class="panel__chart" viewBox="0 0 440 140" preserveAspectRatio="none">
+                  <line x1="0" y1="48" x2="440" y2="48" stroke="#e8e2d6" stroke-dasharray="3 4"/>
+                  <line x1="0" y1="96" x2="440" y2="96" stroke="#f0ebe0"/>
+                  <path d="M0 70 L40 65 L80 78 L120 70 L160 88 L200 80 L240 92 L280 70 L320 60 L360 66 L400 50 L440 44" fill="none" stroke="#c84a1f" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+                  <path d="M0 70 L40 65 L80 78 L120 70 L160 88 L200 80 L240 92 L280 70 L320 60 L360 66 L400 50 L440 44 L440 140 L0 140 Z" fill="url(#g2)"/>
+                  <defs>
+                    <linearGradient id="g2" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0" stop-color="#c84a1f" stop-opacity=".16"/>
+                      <stop offset="1" stop-color="#c84a1f" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div class="panel__xaxis"><span>第1週</span><span>第2週</span><span>第3週</span><span>第4週</span><span>本日</span></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel__head">
+                  <h5>原価率の高いメニュー TOP 5</h5>
+                  <span class="panel__more">すべて見る →</span>
+                </div>
+                <div class="bar-list">
+                  <div class="bar"><span class="bar__name">カプレーゼ</span><span class="bar__track"><span class="bar__fill bar__fill--warn" style="width:78%"></span></span><span class="bar__num">46.7%</span></div>
+                  <div class="bar"><span class="bar__name">魚介のリングイネ</span><span class="bar__track"><span class="bar__fill bar__fill--warn" style="width:64%"></span></span><span class="bar__num">38.4%</span></div>
+                  <div class="bar"><span class="bar__name">トマト&バジル</span><span class="bar__track"><span class="bar__fill" style="width:58%"></span></span><span class="bar__num">34.2%</span></div>
+                  <div class="bar"><span class="bar__name">きのこリゾット</span><span class="bar__track"><span class="bar__fill" style="width:52%"></span></span><span class="bar__num">31.0%</span></div>
+                  <div class="bar"><span class="bar__name">マルゲリータ</span><span class="bar__track"><span class="bar__fill" style="width:42%"></span></span><span class="bar__num">24.5%</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel panel--insight">
+              <div class="panel__head panel__head--row">
+                <div>
+                  <h5>✦ AI からの提案</h5>
+                  <p class="panel__lede">原価データを元に、Costra が3件の改善提案を見つけました。</p>
+                </div>
+                <span class="panel__more">提案 履歴 →</span>
+              </div>
+              <div class="insight-list">
+                <div class="insight">
+                  <div class="insight__icon">↗</div>
+                  <div>
+                    <div class="insight__title">モッツァレラの仕入価格が <em>+12%</em> 上昇</div>
+                    <div class="insight__sub">先週比。代替仕入先「乳業まるた」では同等品が <em>¥1,880/kg</em>（現在比 ▼9%）。</div>
+                  </div>
+                  <span class="insight__cta">仕入先を見る →</span>
+                </div>
+                <div class="insight">
+                  <div class="insight__icon">!</div>
+                  <div>
+                    <div class="insight__title">カプレーゼの原価率が <em>46.7%</em>（目標+12.7pt）</div>
+                    <div class="insight__sub">売価を ¥1,280 → ¥1,480 にすると、原価率 40.4% に改善（弾力性 −0.6 想定）。</div>
+                  </div>
+                  <span class="insight__cta">値上げ試算 →</span>
+                </div>
+                <div class="insight">
+                  <div class="insight__icon">✦</div>
+                  <div>
+                    <div class="insight__title">バジルの発注量、<em>+18%</em> 推奨</div>
+                    <div class="insight__sub">パスタ系の売上増を予測。在庫切れリスク 24%。</div>
+                  </div>
+                  <span class="insight__cta">発注に追加 →</span>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── PRICING ───── -->
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <div class="eyebrow"><span class="eyebrow__dot"></span>料金プラン</div>
+      <h2 class="section-title">
+        個人店から、<br>はじめられる価格。
+      </h2>
+      <p class="section-lede">
+        どのプランも、14日間 無料でお試しいただけます。クレジットカード登録は不要です。
+      </p>
+    </div>
+
+    <div class="plans">
+      <article class="plan">
+        <div class="plan__head">
+          <div class="plan__name">Starter</div>
+          <p class="plan__for">個人店・1店舗から。</p>
+        </div>
+        <div class="plan__price">
+          <span class="plan__yen">¥</span><span class="plan__amount">4,800</span><span class="plan__per">/月</span>
+        </div>
+        <div class="plan__note">税抜・年払い。月払い ¥5,800/月。</div>
+        <a href="/signup" class="btn btn--outline btn--block">14日間 無料で試す</a>
+        <ul class="plan__list">
+          <li><span class="check">✓</span>1店舗</li>
+          <li><span class="check">✓</span>AI 伝票OCR 月100枚まで</li>
+          <li><span class="check">✓</span>リアルタイム原価率</li>
+          <li><span class="check">✓</span>レシピ 50品まで</li>
+          <li><span class="check">✓</span>メール サポート</li>
+        </ul>
+      </article>
+
+      <article class="plan plan--featured">
+        <div class="plan__ribbon">人気</div>
+        <div class="plan__head">
+          <div class="plan__name">Standard</div>
+          <p class="plan__for">複数店舗・チェーン化を見据えて。</p>
+        </div>
+        <div class="plan__price">
+          <span class="plan__yen">¥</span><span class="plan__amount">9,800</span><span class="plan__per">/月</span>
+        </div>
+        <div class="plan__note">税抜・年払い。月払い ¥11,800/月。</div>
+        <a href="/signup" class="btn btn--solid btn--block">14日間 無料で試す</a>
+        <ul class="plan__list">
+          <li><span class="check">✓</span>3店舗まで</li>
+          <li><span class="check">✓</span>AI 伝票OCR <em>無制限</em></li>
+          <li><span class="check">✓</span>リアルタイム原価率 + 異常通知</li>
+          <li><span class="check">✓</span>レシピ <em>無制限</em></li>
+          <li><span class="check">✓</span>AI 改善提案</li>
+          <li><span class="check">✓</span>Slack / LINE 連携</li>
+          <li><span class="check">✓</span>チャット サポート</li>
+        </ul>
+      </article>
+
+      <article class="plan">
+        <div class="plan__head">
+          <div class="plan__name">Pro</div>
+          <p class="plan__for">本格運用・既存システムと連携。</p>
+        </div>
+        <div class="plan__price">
+          <span class="plan__amount plan__amount--ask">要相談</span>
+        </div>
+        <div class="plan__note">店舗数・要件に応じて見積もり。</div>
+        <a class="btn btn--outline btn--block">問い合わせる</a>
+        <ul class="plan__list">
+          <li><span class="check">✓</span>店舗数 <em>無制限</em></li>
+          <li><span class="check">✓</span>Standard の全機能</li>
+          <li><span class="check">✓</span>POS / 会計ソフト連携</li>
+          <li><span class="check">✓</span>独自のレポート出力</li>
+          <li><span class="check">✓</span>専任カスタマーサクセス</li>
+          <li><span class="check">✓</span>SLA 99.9%</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ───── CTA ───── -->
+<section class="cta" id="cta">
+  <div class="wrap cta__inner">
+    <div class="cta__copy">
+      <div class="eyebrow eyebrow--dark"><span class="eyebrow__dot"></span>START IN 60 SECONDS</div>
+      <h2 class="cta__title">
+        次の月末、<br>もう徹夜しない。
+      </h2>
+      <p class="cta__sub">14日間、すべての機能を無料でお試しいただけます。<br>クレジットカード登録不要、伝票1枚から効果を実感できます。</p>
+    </div>
+    <div class="cta__form">
+      <label class="field">
+        <span>店舗名</span>
+        <input type="text" placeholder="例）Trattoria Sole" />
+      </label>
+      <label class="field">
+        <span>メールアドレス</span>
+        <input type="email" placeholder="owner@example.com" />
+      </label>
+      <button class="btn btn--solid btn--lg btn--block" onclick="window.location.href='/signup'">無料アカウントを作る →</button>
+      <p class="cta__fine">
+        登録すると<a href="#">利用規約</a>・<a href="#">プライバシーポリシー</a>に同意したものとみなします。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ───── FOOTER ───── -->
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <div class="footer__brand">
+      <a href="/" class="logo">
+        <span class="logo__mark"><svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/><path d="M9 14h10M14 9v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="logo__word">Costra</span>
+      </a>
+      <p class="footer__tag">飲食店のための、AI原価管理。</p>
+    </div>
+    <div class="footer__cols">
+      <div>
+        <div class="footer__h">プロダクト</div>
+        <a>機能</a><a>料金</a><a>導入事例</a><a>ロードマップ</a>
+      </div>
+      <div>
+        <div class="footer__h">会社</div>
+        <a>運営会社</a><a>採用情報</a><a>ニュース</a><a>お問い合わせ</a>
+      </div>
+      <div>
+        <div class="footer__h">サポート</div>
+        <a>ヘルプセンター</a><a>導入ガイド</a><a>API ドキュメント</a><a>セキュリティ</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer__bottom wrap">
+    <span>© 2026 Costra Inc.</span>
+    <span class="footer__legal"><a>利用規約</a> · <a>プライバシーポリシー</a> · <a>特定商取引法</a></span>
+  </div>
+</footer>
+
+<script src="/design/app.js" defer></script>
+</body>
+</html>
