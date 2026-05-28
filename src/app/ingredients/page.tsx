@@ -35,7 +35,7 @@ export default async function IngredientsPage({
     costPerUnit: Number(i.costPerUnit),
     sortOrder: i.sortOrder ?? undefined,
     category: i.category ?? undefined,
-    lastUpdated: i.updatedAt.toISOString(),
+    lastUpdated: i.lastUpdated.toISOString(),
   }));
 
   return (
