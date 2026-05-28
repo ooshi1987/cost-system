@@ -1733,3 +1733,68 @@ button { font: inherit; cursor: pointer; }
 }
 .footer__legal a { color: var(--dark-mute); }
 .footer__legal a:hover { color: var(--dark-ink); }
+
+/* ─────────────────────────────────────────────
+   Mobile responsive overrides (max-width: 720px)
+   ───────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  /* Nav: ログインボタンを非表示 */
+  .nav__cta .btn--ghost { display: none; }
+  .nav__inner { gap: 16px; }
+
+  /* Hero */
+  .hero { padding: 48px 0 64px; }
+  .hero__title { font-size: clamp(36px, 9.5vw, 44px); }
+  .hero__sub { font-size: 15px; margin-bottom: 28px; }
+  .hero__ctas { gap: 12px; flex-wrap: wrap; }
+  .logos { margin-top: 48px; }
+  .logos__row { gap: 16px 24px; font-size: 13px; }
+
+  /* Section padding */
+  .pain     { padding: 64px 0; }
+  .features { padding: 64px 0; }
+  .product  { padding: 64px 0; }
+  .pricing  { padding: 64px 0; }
+  .cta      { padding: 60px 0; }
+
+  .section-head { margin-bottom: 40px; }
+
+  /* Pain */
+  .pain__card { padding: 24px 20px; }
+  .pain__metric { font-size: 28px; }
+
+  /* Features */
+  .feature { margin-bottom: 56px; }
+  .feature__title { font-size: clamp(26px, 7vw, 36px); }
+  .feature__body { font-size: 14.5px; }
+  .ocr-demo { padding: 20px 16px; gap: 16px; }
+
+  /* Dashboard demo: 3col → 2col */
+  .dash-demo__top {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .dash-demo { padding: 18px 16px 16px; }
+
+  /* Product / screen */
+  .screen__main { padding: 14px 14px 16px; }
+  .screen__topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .screen__heading { font-size: 17px; }
+  .screen__tools { gap: 6px; flex-wrap: wrap; }
+  .tool-pill { font-size: 10px; padding: 5px 10px; }
+
+  /* Pricing */
+  .plans { max-width: 100%; }
+  .plan { padding: 24px 20px; }
+  .plan--featured { transform: none; }  /* モバイルでは浮き上がり不要 */
+
+  /* CTA */
+  .cta__form { padding: 20px; gap: 12px; }
+  .cta__title { font-size: clamp(30px, 8vw, 44px); margin-bottom: 14px; }
+}
