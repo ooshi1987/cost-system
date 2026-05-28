@@ -80,10 +80,44 @@ const NAV_ITEMS = [
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
 
+const SUPER_ADMIN_NAV = [
+  {
+    href: '/super-admin',
+    label: '事業概要',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="8.5" width="3" height="6" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+        <rect x="6.5" y="5.5" width="3" height="9" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+        <rect x="11.5" y="2.5" width="3" height="12" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/super-admin?tab=tenants',
+    label: 'テナント一覧',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 13V6l6-4 6 4v7H2Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+        <rect x="6" y="9" width="4" height="4" stroke="currentColor" strokeWidth="1.4"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/super-admin?tab=inquiries',
+    label: '問い合わせ',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 3h12v8H9l-3 2.5V11H2V3Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [me, setMe] = useState<Me | null>(null);
 
+  const isSuperAdmin = pathname.startsWith('/super-admin');
   const hidden =
     HIDDEN_PATHS.includes(pathname) ||
     pathname.startsWith('/design');
@@ -98,28 +132,39 @@ export default function Sidebar() {
 
   if (hidden) return null;
 
+  const navItems = isSuperAdmin ? SUPER_ADMIN_NAV : NAV_ITEMS;
+
   return (
     <aside className="sidebar">
       {/* ロゴ */}
       <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid var(--line)' }}>
-        <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+        <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
             <circle cx="14" cy="14" r="13" stroke="var(--accent)" strokeWidth="1.5"/>
             <path d="M9 14h10M14 9v10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Costra</span>
         </Link>
+        {isSuperAdmin && (
+          <span style={{ display: 'block', marginTop: 6, fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#ede9fe', borderRadius: 999, padding: '2px 8px', width: 'fit-content' }}>
+            運営管理
+          </span>
+        )}
       </div>
 
-      {/* 店舗セレクター */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--line)' }}>
-        <StoreSelector />
-      </div>
+      {/* 店舗セレクター（通常ページのみ） */}
+      {!isSuperAdmin && (
+        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--line)' }}>
+          <StoreSelector />
+        </div>
+      )}
 
       {/* ナビ */}
       <nav style={{ padding: '12px 10px', flex: 1 }}>
-        {NAV_ITEMS.map(({ href, label, exact, icon }) => {
-          const isActive = exact ? pathname === href : pathname.startsWith(href);
+        {navItems.map(({ href, label, icon }) => {
+          const isActive = isSuperAdmin
+            ? pathname === '/super-admin' && href === '/super-admin'
+            : pathname === href || (!href.includes('?') && pathname.startsWith(href));
           return (
             <Link
               key={href}
@@ -150,7 +195,7 @@ export default function Sidebar() {
       {me && (
         <div style={{ padding: '14px 16px', borderTop: '1px solid var(--line)' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500, marginBottom: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            {me.role === 'tenant_admin' ? 'オーナー' : 'スタッフ'}
+            {isSuperAdmin ? '運営管理者' : me.role === 'tenant_admin' ? 'オーナー' : 'スタッフ'}
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {me.name ?? me.email}
