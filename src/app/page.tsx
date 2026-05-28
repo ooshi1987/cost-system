@@ -1,36 +1,42 @@
 import Link from 'next/link';
 import CostraLogo from '@/components/CostraLogo';
 
+const AI_STEPS = [
+  { icon: '📸', label: '撮影する', desc: 'スマホで納品書やメニューを撮るだけ' },
+  { icon: '🤖', label: 'AIが読み取る', desc: '食材名・価格・メニュー内容を自動解析' },
+  { icon: '✅', label: '自動で完了', desc: '登録・原価計算・更新まで全部おまかせ' },
+];
+
 const FEATURES = [
   {
     icon: '📸',
-    title: '納品書をスキャンするだけ',
-    description: 'スマホで撮影するだけで食材の仕入れ価格を自動登録。手入力の手間をゼロに。',
+    title: '納品書の登録、AIが全部やる',
+    description: 'スマホで撮るだけ。食材名も仕入れ価格も、AIが自動で読み取って登録。手入力は一切不要。',
   },
   {
     icon: '🍽️',
-    title: 'メニューもスキャンするだけ',
-    description: '紙のメニューでもスマホで撮影するだけでAIが自動登録。カテゴリも値段も、面倒な手入力の手間をゼロに。',
+    title: 'メニューの登録も、AIが全部やる',
+    description: '紙のメニューを撮影するだけでAIが自動登録。カテゴリも値段も、AIにおまかせ。',
   },
   {
     icon: '📝',
-    title: 'レシピもスキャンするだけ',
-    description: 'レシピもスマホで撮影するだけでAIが自動登録。紙のレシピでもOK。面倒な手入力の手間をゼロに。',
+    title: 'レシピの登録も、AIが全部やる',
+    description: '手書きのレシピでもOK。撮影するだけでAIが内容を読み取り、食材と紐づけて登録。',
   },
   {
     icon: '📊',
-    title: 'リアルタイム原価率を把握',
-    description: 'メニューごとの原価率を自動計算。食材価格が変わると即座に反映されます。',
+    title: '原価率の計算も、AIが自動でやる',
+    description: '食材価格が変わると、AIが即座に全メニューの原価率を再計算。常に最新の数字を把握できる。',
   },
   {
     icon: '📋',
-    title: 'メニュー原価を一元管理',
-    description: 'レシピと食材をひもづけて原価を自動算出。値上げタイミングの判断に役立てましょう。',
+    title: 'メニュー原価の管理も、全部おまかせ',
+    description: 'レシピと食材の紐づけもAIが補助。値上げタイミングの判断を数字でサポートします。',
   },
   {
     icon: '🏪',
-    title: '複数店舗に対応',
-    description: '店舗ごとに食材・メニューを分けて管理。チェーン店や複数業態にも対応。',
+    title: '複数店舗も、まとめて管理',
+    description: '店舗ごとの食材・メニューをAIが整理。チェーン店や複数業態にもそのまま対応。',
   },
 ];
 
@@ -50,7 +56,7 @@ const PLANS = [
     price: '¥1,980',
     period: '/ 月',
     description: '個人・小規模店舗向け',
-    features: ['メニュー無制限', '食材・調味料無制限', '店舗1つ', '納品書スキャン'],
+    features: ['メニュー無制限', '食材・調味料無制限', '店舗1つ', 'AIスキャン無制限'],
     cta: '14日間無料で試す',
     href: '/signup',
     highlight: true,
@@ -93,19 +99,39 @@ export default function LandingPage() {
       </header>
 
       {/* ── ヒーロー ── */}
-      <section className="max-w-4xl mx-auto px-5 pt-20 pb-24 text-center">
+      <section className="max-w-4xl mx-auto px-5 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full mb-6 border border-amber-200">
-          <span>🎉</span>
-          <span>フリープランは永久無料</span>
+          <span>🤖</span>
+          <span>AI が原価管理をまるごと自動化</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-4">
-          飲食店の原価管理を、<br />
-          <span className="text-amber-500">もっとかんたんに。</span>
-        </h1>
-        <p className="text-gray-500 text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-          納品書を撮影するだけで食材の仕入れ価格を自動登録。
-          メニューごとの原価率をリアルタイムで把握できます。
+        <p className="text-gray-400 text-sm sm:text-base mb-3">
+          大変な原価計算、もう自分でやらなくていい。
         </p>
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+          撮影するだけ。<br />
+          <span className="text-amber-500">あとはAIが全部やる。</span>
+        </h1>
+        <p className="text-gray-500 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+          食材の登録も、メニューの原価計算も、価格変動の反映も。<br />
+          飲食店の原価管理に必要なことを、AIがすべて自動でこなします。
+        </p>
+
+        {/* AI ステップ */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0 mb-10">
+          {AI_STEPS.map((step, i) => (
+            <div key={step.label} className="flex sm:flex-row flex-col items-center gap-2 sm:gap-0">
+              <div className="flex flex-col items-center bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 w-44">
+                <span className="text-3xl mb-1">{step.icon}</span>
+                <span className="font-bold text-sm text-gray-900">{step.label}</span>
+                <span className="text-gray-400 text-xs mt-1 text-center leading-snug">{step.desc}</span>
+              </div>
+              {i < AI_STEPS.length - 1 && (
+                <span className="text-gray-300 text-xl sm:mx-3 rotate-90 sm:rotate-0">→</span>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link
             href="/demo"
@@ -150,8 +176,8 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="bg-amber-500 rounded-2xl py-3 text-center text-white font-bold text-sm flex items-center justify-center gap-2">
-              <span>📸</span>
-              <span>納品書をスキャン</span>
+              <span>🤖</span>
+              <span>AIが自動で登録・計算中...</span>
             </div>
           </div>
         </div>
@@ -159,8 +185,8 @@ export default function LandingPage() {
 
       {/* ── 特徴 ── */}
       <section className="max-w-4xl mx-auto px-5 mb-24">
-        <h2 className="text-2xl font-extrabold text-center mb-3">なぜ選ばれるのか</h2>
-        <p className="text-gray-500 text-center text-sm mb-10">飲食店オーナーの「めんどくさい」を解消します</p>
+        <h2 className="text-2xl font-extrabold text-center mb-3">AIがやってくれること</h2>
+        <p className="text-gray-500 text-center text-sm mb-10">面倒な作業は全部AIにおまかせ。あなたは経営に集中できる。</p>
         <div className="grid sm:grid-cols-2 gap-5">
           {FEATURES.map((f) => (
             <div key={f.title} className="flex gap-4 bg-gray-50 rounded-2xl p-5 border border-gray-100">
@@ -225,7 +251,7 @@ export default function LandingPage() {
 
       {/* ── CTA フッター ── */}
       <section className="max-w-4xl mx-auto px-5 py-20 text-center">
-        <h2 className="text-2xl font-extrabold mb-3">まずはデモを見てみましょう</h2>
+        <h2 className="text-2xl font-extrabold mb-3">AIに任せて、経営に集中しよう</h2>
         <p className="text-gray-500 text-sm mb-8">登録不要、すぐに試せます</p>
         <Link
           href="/demo"
