@@ -18,6 +18,8 @@ export default function BottomNav() {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password' ||
     pathname.startsWith('/super-admin')
   ) return null;
 
