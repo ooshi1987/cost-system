@@ -39,3 +39,55 @@ html, body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* ── サイドバーレイアウト (PC) ── */
+:root { --sidebar-w: 220px; }
+
+.sidebar {
+  display: none;
+}
+
+.app-main {
+  min-height: 100svh;
+  padding-bottom: 80px; /* BottomNav分 */
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+    z-index: 40;
+    overflow-y: auto;
+  }
+
+  .app-main {
+    padding-left: var(--sidebar-w);
+    padding-bottom: 0;
+  }
+
+  /* BottomNav を PC では非表示 */
+  nav[data-bottom-nav] {
+    display: none !important;
+  }
+}
+
+/* ダッシュボード内コンテナ */
+.dashboard-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 0;
+}
+
+@media (min-width: 768px) {
+  .dashboard-inner {
+    max-width: 960px;
+    padding: 32px 40px 0;
+  }
+}

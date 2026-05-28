@@ -84,7 +84,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100svh', background: 'var(--bg)', paddingBottom: 80 }}>
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 0' }}>
+      <div className="dashboard-inner">
 
         {/* ── ヘッダー ── */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
