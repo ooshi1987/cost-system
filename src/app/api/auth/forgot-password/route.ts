@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       if (resendApiKey) {
         const resend = new Resend(resendApiKey);
         await resend.emails.send({
-          from: 'Costra <noreply@cost-system.app>',
+          from: process.env.EMAIL_FROM ?? 'Costra <onboarding@resend.dev>',
           to: email,
           subject: 'パスワードのリセット — Costra',
           html: `
