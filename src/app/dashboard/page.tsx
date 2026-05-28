@@ -88,7 +88,7 @@ export default function Dashboard() {
 
         {/* ── ヘッダー ── */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
               <circle cx="14" cy="14" r="13" stroke="var(--accent)" strokeWidth="1.5"/>
               <path d="M9 14h10M14 9v10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
