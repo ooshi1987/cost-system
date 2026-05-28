@@ -56,7 +56,7 @@ const NAV_ITEMS = [
     ),
   },
   {
-    href: '/delivery-history',
+    href: '/reports',
     label: 'レポート',
     exact: false,
     icon: (
