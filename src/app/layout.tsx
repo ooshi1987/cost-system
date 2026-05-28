@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "./ServiceWorkerRegister";
-import BottomNav from "@/components/BottomNav";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Costra — 飲食店の原価管理",
@@ -29,11 +28,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full">
-        <Sidebar />
-        <main className="app-main">
-          {children}
-        </main>
-        <BottomNav />
+        <AppShell>{children}</AppShell>
         <ServiceWorkerRegister />
       </body>
     </html>
