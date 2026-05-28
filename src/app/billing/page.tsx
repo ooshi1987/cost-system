@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
 
 interface BillingInfo {
   subscriptionStatus: string | null;
@@ -16,17 +15,17 @@ interface BillingInfo {
 }
 
 function UsageBar({ used, limit }: { used: number; limit: number | null }) {
-  if (limit === null) return <p className="text-xs text-green-600 font-medium">無制限</p>;
+  if (limit === null) return <p style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>無制限</p>;
   const pct = Math.min((used / limit) * 100, 100);
   const over = used >= limit;
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span className={over ? 'text-red-500 font-bold' : 'text-gray-500'}>{used} / {limit}</span>
-        {over && <span className="text-red-500 font-bold">上限到達</span>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+        <span style={{ color: over ? 'var(--accent)' : 'var(--muted)', fontWeight: over ? 700 : 400 }}>{used} / {limit}</span>
+        {over && <span style={{ color: 'var(--accent)', fontWeight: 700 }}>上限到達</span>}
       </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${over ? 'bg-red-400' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
+      <div style={{ height: 6, background: 'var(--line-2)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: over ? 'var(--accent)' : 'var(--accent-2)', borderRadius: 3, transition: 'width .4s ease' }} />
       </div>
     </div>
   );
@@ -83,52 +82,68 @@ function BillingContent() {
   const isPastDue = info?.subscriptionStatus === 'past_due';
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400">読み込み中…</p>
+    <div style={{ minHeight: '100svh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p style={{ color: 'var(--muted)', fontSize: 14 }}>読み込み中…</p>
     </div>
   );
 
+  const planBadgeStyle = (plan: string): React.CSSProperties => {
+    if (plan === 'pro')   return { background: '#f3e8ff', color: '#7c3aed', fontWeight: 700, fontSize: 11, padding: '3px 10px', borderRadius: 20 };
+    if (plan === 'basic') return { background: '#fff3e0', color: 'var(--accent)', fontWeight: 700, fontSize: 11, padding: '3px 10px', borderRadius: 20 };
+    return { background: 'var(--line-2)', color: 'var(--muted)', fontWeight: 700, fontSize: 11, padding: '3px 10px', borderRadius: 20 };
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="max-w-xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => router.push('/')} className="text-amber-600 text-sm">← 戻る</button>
-          <h1 className="text-xl font-bold">プラン・請求</h1>
+    <div style={{ minHeight: '100svh', background: 'var(--bg)', paddingBottom: 80 }}>
+      <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 16px 40px' }}>
+
+        {/* ヘッダー */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{ fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)', padding: 0 }}
+          >
+            ← 戻る
+          </button>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>プラン・請求</h1>
         </div>
 
+        {/* 成功バナー */}
         {success && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 text-green-700 text-sm font-medium">
-            🎉 プランを開始しました！ご利用ありがとうございます。
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 16, color: '#15803d', fontSize: 13, fontWeight: 600 }}>
+            プランを開始しました！ご利用ありがとうございます。
           </div>
-        )}
-        {isPastDue && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 text-red-600 text-sm font-medium">
-            ⚠️ お支払いに問題があります。請求ポータルから確認してください。
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 text-red-600 text-sm">{error}</div>
         )}
 
-        {/* 現在の使用状況 */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-base">現在のプラン</h2>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-              currentPlan === 'pro'   ? 'bg-purple-100 text-purple-700' :
-              currentPlan === 'basic' ? 'bg-amber-100 text-amber-700'  :
-                                        'bg-gray-100 text-gray-600'
-            }`}>
-              {currentPlan === 'pro' ? '⭐ Pro' : currentPlan === 'basic' ? '✅ Basic' : '🆓 無料'}
+        {/* 滞納バナー */}
+        {isPastDue && (
+          <div style={{ background: '#fff1f1', border: '1px solid #fecaca', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 16, color: 'var(--accent)', fontSize: 13, fontWeight: 600 }}>
+            お支払いに問題があります。請求ポータルから確認してください。
+          </div>
+        )}
+
+        {/* エラー */}
+        {error && (
+          <div style={{ background: '#fff1f1', border: '1px solid #fecaca', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 16, color: 'var(--accent)', fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+
+        {/* 現在のプラン */}
+        <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '20px 18px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>現在のプラン</h2>
+            <span style={planBadgeStyle(currentPlan)}>
+              {currentPlan === 'pro' ? 'Pro' : currentPlan === 'basic' ? 'Basic' : '無料'}
             </span>
           </div>
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <p className="text-xs text-gray-500 mb-1">🍽 メニュー品目</p>
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>メニュー品目</p>
               <UsageBar used={info?.usage.menuItems.used ?? 0} limit={info?.usage.menuItems.limit ?? 10} />
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">🥦 食材・調味料</p>
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>食材・調味料</p>
               <UsageBar used={info?.usage.ingredients.used ?? 0} limit={info?.usage.ingredients.limit ?? 20} />
             </div>
           </div>
@@ -136,13 +151,18 @@ function BillingContent() {
 
         {/* 有料プランのポータル */}
         {isPaid && (
-          <div className="bg-white rounded-2xl shadow-sm p-5 mb-5">
-            <h2 className="font-bold text-base mb-2">💳 お支払い管理</h2>
-            <p className="text-sm text-gray-500 mb-4">請求書・支払い方法の変更・解約は Stripe ポータルで行えます。</p>
+          <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '20px 18px', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>お支払い管理</h2>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>請求書・支払い方法の変更・解約は Stripe ポータルで行えます。</p>
             <button
               onClick={openPortal}
               disabled={!!redirecting}
-              className="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-300 transition-colors"
+              style={{
+                width: '100%', background: 'var(--ink)', color: '#fff',
+                border: 'none', borderRadius: 'var(--r)', padding: '12px 0',
+                fontSize: 14, fontWeight: 700, cursor: redirecting ? 'not-allowed' : 'pointer',
+                opacity: redirecting ? 0.5 : 1, fontFamily: 'var(--sans)',
+              }}
             >
               {redirecting === 'portal' ? '移動中…' : '請求ポータルを開く →'}
             </button>
@@ -151,66 +171,91 @@ function BillingContent() {
 
         {/* プラン比較カード */}
         {!isPaid && (
-          <div className="space-y-3">
-            <h2 className="font-bold text-base px-1">プランを選択</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>プランを選択</h2>
 
             {/* Basic */}
-            <div className={`bg-white rounded-2xl shadow-sm p-5 border-2 ${currentPlan === 'basic' ? 'border-amber-400' : 'border-transparent'}`}>
-              <div className="flex items-start justify-between mb-3">
+            <div style={{
+              background: 'var(--paper)',
+              border: `2px solid ${currentPlan === 'basic' ? 'var(--accent-2)' : 'var(--line)'}`,
+              borderRadius: 'var(--r-lg)', padding: '20px 18px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div>
-                  <p className="font-bold text-lg">Basic</p>
-                  <p className="text-gray-400 text-xs">個人店・1店舗向け</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Basic</p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>個人店・1店舗向け</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-amber-600">¥1,980</p>
-                  <p className="text-xs text-gray-400">/ 月（税別）</p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 24, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 }}>¥1,980</p>
+                  <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>/ 月（税別）</p>
                 </div>
               </div>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
-                <li>✅ メニュー品目・食材 <strong>無制限</strong></li>
-                <li>✅ 全スキャン・原価計算機能</li>
-                <li>✅ 1店舗</li>
+              <ul style={{ fontSize: 13, color: 'var(--ink-2)', listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <li>✓ メニュー品目・食材 <strong>無制限</strong></li>
+                <li>✓ 全スキャン・原価計算機能</li>
+                <li>✓ 1店舗</li>
               </ul>
               {currentPlan !== 'basic' && currentPlan !== 'pro' && (
                 <button
                   onClick={() => startCheckout('basic')}
                   disabled={!!redirecting}
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors shadow-md shadow-amber-100"
+                  style={{
+                    width: '100%', background: 'var(--accent)', color: '#fff',
+                    border: 'none', borderRadius: 'var(--r)', padding: '12px 0',
+                    fontSize: 14, fontWeight: 700, cursor: redirecting ? 'not-allowed' : 'pointer',
+                    opacity: redirecting ? 0.5 : 1, fontFamily: 'var(--sans)',
+                  }}
                 >
                   {redirecting === 'basic' ? '決済ページへ移動中…' : 'Basicプランを始める →'}
                 </button>
               )}
+              {currentPlan === 'basic' && (
+                <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, textAlign: 'center' }}>現在のプランです</p>
+              )}
             </div>
 
             {/* Pro */}
-            <div className={`bg-white rounded-2xl shadow-sm p-5 border-2 ${currentPlan === 'pro' ? 'border-purple-400' : 'border-transparent'} relative`}>
-              <div className="absolute -top-3 left-4">
-                <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">多店舗おすすめ</span>
+            <div style={{
+              background: 'var(--paper)',
+              border: `2px solid ${currentPlan === 'pro' ? '#7c3aed' : 'var(--line)'}`,
+              borderRadius: 'var(--r-lg)', padding: '20px 18px',
+              position: 'relative',
+            }}>
+              <div style={{ position: 'absolute', top: -12, left: 16 }}>
+                <span style={{ background: '#7c3aed', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>多店舗おすすめ</span>
               </div>
-              <div className="flex items-start justify-between mb-3 mt-1">
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, marginTop: 8 }}>
                 <div>
-                  <p className="font-bold text-lg">Pro</p>
-                  <p className="text-gray-400 text-xs">多店舗展開・チェーン向け</p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>Pro</p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>多店舗展開・チェーン向け</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-purple-600">¥4,980</p>
-                  <p className="text-xs text-gray-400">/ 月（税別）</p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 24, fontWeight: 700, color: '#7c3aed', lineHeight: 1 }}>¥4,980</p>
+                  <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>/ 月（税別）</p>
                 </div>
               </div>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-4">
-                <li>✅ メニュー品目・食材 <strong>無制限</strong></li>
-                <li>✅ 全スキャン・原価計算機能</li>
-                <li>✅ 店舗数 <strong>無制限</strong></li>
-                <li>✅ スタッフアカウント追加</li>
+              <ul style={{ fontSize: 13, color: 'var(--ink-2)', listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <li>✓ メニュー品目・食材 <strong>無制限</strong></li>
+                <li>✓ 全スキャン・原価計算機能</li>
+                <li>✓ 店舗数 <strong>無制限</strong></li>
+                <li>✓ スタッフアカウント追加</li>
               </ul>
               {currentPlan !== 'pro' && (
                 <button
                   onClick={() => startCheckout('pro')}
                   disabled={!!redirecting}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-sm disabled:bg-gray-200 transition-colors shadow-md shadow-purple-100"
+                  style={{
+                    width: '100%', background: '#7c3aed', color: '#fff',
+                    border: 'none', borderRadius: 'var(--r)', padding: '12px 0',
+                    fontSize: 14, fontWeight: 700, cursor: redirecting ? 'not-allowed' : 'pointer',
+                    opacity: redirecting ? 0.5 : 1, fontFamily: 'var(--sans)',
+                  }}
                 >
                   {redirecting === 'pro' ? '決済ページへ移動中…' : 'Proプランを始める →'}
                 </button>
+              )}
+              {currentPlan === 'pro' && (
+                <p style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600, textAlign: 'center' }}>現在のプランです</p>
               )}
             </div>
           </div>
@@ -222,7 +267,11 @@ function BillingContent() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-400">読み込み中…</p></div>}>
+    <Suspense fallback={
+      <div style={{ minHeight: '100svh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--muted)', fontSize: 14 }}>読み込み中…</p>
+      </div>
+    }>
       <BillingContent />
     </Suspense>
   );
