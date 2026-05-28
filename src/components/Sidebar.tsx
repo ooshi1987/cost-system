@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   {
     href: '/delivery',
     label: '仕入れ',
-    exact: false,
+    exact: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
