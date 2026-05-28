@@ -7,6 +7,29 @@ const AI_STEPS = [
   { icon: '✅', label: '自動で完了', desc: '登録・原価計算・更新まで全部おまかせ' },
 ];
 
+const PROBLEMS = [
+  {
+    icon: '😩',
+    problem: '原価計算にExcelで何時間もかかる',
+    detail: '食材が値上がりするたびに、全メニューの計算をやり直し。終わらない作業に疲弊。',
+  },
+  {
+    icon: '📦',
+    problem: '納品書の手入力が毎回しんどい',
+    detail: '届くたびに品名・価格を1つずつ入力。ミスも多く、確認作業まで発生してしまう。',
+  },
+  {
+    icon: '📉',
+    problem: '原価率が高いメニューを把握できていない',
+    detail: '「なんとなく高そう」で終わってしまい、値上げや改善のタイミングを逃し続けている。',
+  },
+  {
+    icon: '🤯',
+    problem: '食材の値上がりが原価にいつ反映されたかわからない',
+    detail: '価格改定の時期と、メニュー原価の更新がバラバラで、どのデータが正しいか不明。',
+  },
+];
+
 const FEATURES = [
   {
     icon: '📸',
@@ -79,14 +102,25 @@ export default function LandingPage() {
 
       {/* ── ヘッダー ── */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="max-w-4xl mx-auto px-5 h-14 flex items-center justify-between">
-          <CostraLogo size={28} />
+        <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <CostraLogo size={28} />
+            <span className="hidden sm:block text-xs text-gray-400 font-medium border-l border-gray-200 pl-3">
+              AI原価管理
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+              className="text-sm text-gray-400 hover:text-gray-600 font-medium transition-colors px-2 hidden sm:block"
             >
               ログイン
+            </Link>
+            <Link
+              href="/signup"
+              className="text-sm border border-amber-400 text-amber-600 hover:bg-amber-50 font-bold px-4 py-2 rounded-xl transition-colors"
+            >
+              無料で始める
             </Link>
             <Link
               href="/demo"
@@ -179,6 +213,31 @@ export default function LandingPage() {
               <span>🤖</span>
               <span>AIが自動で登録・計算中...</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 課題提示 ── */}
+      <section className="max-w-4xl mx-auto px-5 mb-24">
+        <h2 className="text-2xl font-extrabold text-center mb-3">こんなお悩み、ありませんか？</h2>
+        <p className="text-gray-500 text-center text-sm mb-10">多くの飲食店オーナーが抱える、原価管理の「あるある」です</p>
+        <div className="grid sm:grid-cols-2 gap-4 mb-12">
+          {PROBLEMS.map((p) => (
+            <div key={p.problem} className="flex gap-4 bg-red-50 border border-red-100 rounded-2xl p-5">
+              <div className="text-3xl flex-shrink-0">{p.icon}</div>
+              <div>
+                <div className="font-bold text-gray-900 mb-1">「{p.problem}」</div>
+                <div className="text-gray-500 text-sm leading-relaxed">{p.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-center">
+          <div className="inline-flex flex-col items-center gap-3">
+            <div className="text-2xl font-extrabold text-gray-900">
+              それ、<span className="text-amber-500">全部Costraが解決します。</span>
+            </div>
+            <div className="text-gray-400 text-sm">撮影するだけで、AIが全部やってくれます。</div>
           </div>
         </div>
       </section>
