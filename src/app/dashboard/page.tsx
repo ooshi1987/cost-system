@@ -230,24 +230,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── クイックアクション ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          <Link href="/ingredients" style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '14px 16px', textDecoration: 'none' }}>
-            <span style={{ fontSize: 20 }}>🥦</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>食材</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>原価・単価管理</div>
-            </div>
-          </Link>
-          <Link href="/delivery-history" style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '14px 16px', textDecoration: 'none' }}>
-            <span style={{ fontSize: 20 }}>📦</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>納品履歴</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>過去の納品確認</div>
-            </div>
-          </Link>
-        </div>
-
       </div>
     </div>
   );
