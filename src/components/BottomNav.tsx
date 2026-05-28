@@ -14,31 +14,64 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // LP・ログイン・サインアップ・スーパー管理者ページでは非表示
-  if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname.startsWith('/super-admin')) return null;
+  if (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname.startsWith('/super-admin')
+  ) return null;
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-100 z-50"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: 'rgba(250,247,241,0.97)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderTop: '1px solid var(--line)',
+        zIndex: 50,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
-      <div className="max-w-xl mx-auto flex">
+      <div style={{ maxWidth: '480px', margin: '0 auto', display: 'flex' }}>
         {NAV_ITEMS.map(({ href, label, icon, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-medium transition-colors ${
-                isActive ? 'text-amber-600' : 'text-gray-400 hover:text-gray-500'
-              }`}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '10px 0 8px',
+                gap: '2px',
+                fontSize: '11px',
+                fontWeight: 500,
+                color: isActive ? 'var(--accent)' : 'var(--muted)',
+                textDecoration: 'none',
+                position: 'relative',
+              }}
             >
-              <span className={`text-xl leading-none transition-transform ${isActive ? 'scale-110' : ''}`}>
+              <span style={{ fontSize: '20px', lineHeight: 1, transform: isActive ? 'scale(1.1)' : 'scale(1)', transition: 'transform .15s' }}>
                 {icon}
               </span>
               <span>{label}</span>
               {isActive && (
-                <span className="absolute bottom-0 w-6 h-0.5 bg-amber-500 rounded-full" />
+                <span style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '24px',
+                  height: '2px',
+                  background: 'var(--accent)',
+                  borderRadius: '1px',
+                }} />
               )}
             </Link>
           );

@@ -33,42 +33,72 @@ export default function SignupPage() {
     }
   };
 
+  const field = {
+    border: '1px solid var(--line)',
+    borderRadius: 'var(--r)',
+    padding: '11px 14px',
+    fontSize: '15px',
+    color: 'var(--ink)',
+    background: 'var(--bg)',
+    outline: 'none',
+    transition: 'border-color .15s',
+    width: '100%',
+    fontFamily: 'var(--sans)',
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div style={{ minHeight: '100svh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
 
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🧾</div>
-          <h1 className="text-2xl font-bold text-gray-800">新規登録</h1>
-          <p className="text-gray-400 text-sm mt-1">まずは無料で始めましょう</p>
+      {/* Logo */}
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px', textDecoration: 'none' }}>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="13" stroke="var(--accent)" strokeWidth="1.5"/>
+          <path d="M9 14h10M14 9v10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Costra</span>
+      </Link>
+
+      <div style={{ width: '100%', maxWidth: '420px' }}>
+
+        {/* Trial badge */}
+        <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-2)', borderRadius: 'var(--r-lg)', padding: '14px 18px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <span style={{ fontSize: '18px', lineHeight: 1 }}>🎉</span>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--accent)', fontSize: '13px', marginBottom: '6px' }}>14日間 無料トライアル</p>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {['全機能が使い放題', 'クレジットカード不要', 'いつでもキャンセル可'].map((t) => (
+                <li key={t} style={{ fontSize: '12px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>✓</span>{t}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* トライアル内容 */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 text-sm">
-          <p className="font-bold text-amber-700 mb-2">🎉 無料トライアル</p>
-          <ul className="text-amber-600 space-y-1">
-            <li>✓ メニュー品目 最大10品</li>
-            <li>✓ 食材・調味料 最大20種</li>
-            <li>✓ 店舗数 1店舗</li>
-            <li className="text-amber-500 text-xs mt-1">※ 制限を超えたらプランを選択してください</li>
-          </ul>
-        </div>
+        {/* Card */}
+        <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-xl)', padding: '32px', boxShadow: 'var(--shadow-md)' }}>
 
-        <div className="bg-white rounded-2xl shadow p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">会社名 / 屋号</label>
+          <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px', marginTop: 0 }}>アカウント作成</h1>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '28px', marginTop: 0 }}>まずは無料で始めましょう</p>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>会社名 / 屋号</span>
               <input
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="〇〇フード株式会社"
                 required
-                className="w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                style={field}
+                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">メールアドレス</label>
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>メールアドレス</span>
               <input
                 type="email"
                 value={email}
@@ -76,11 +106,14 @@ export default function SignupPage() {
                 placeholder="mail@example.com"
                 required
                 autoComplete="email"
-                className="w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                style={field}
+                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">パスワード</label>
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>パスワード</span>
               <input
                 type="password"
                 value={password}
@@ -89,31 +122,52 @@ export default function SignupPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                style={field}
+                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
               />
-            </div>
+            </label>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">{error}</div>
+              <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-2)', borderRadius: 'var(--r)', padding: '10px 14px', color: 'var(--accent)', fontSize: '13px' }}>
+                {error}
+              </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-3.5 rounded-xl font-bold text-base disabled:bg-gray-300 mt-2 transition-colors"
+              style={{
+                background: loading ? 'var(--muted)' : 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 'var(--r)',
+                padding: '13px',
+                fontSize: '15px',
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                marginTop: '4px',
+                transition: 'background .15s',
+                fontFamily: 'var(--sans)',
+              }}
+              onMouseEnter={(e) => { if (!loading) (e.target as HTMLButtonElement).style.background = 'var(--accent-h)'; }}
+              onMouseLeave={(e) => { if (!loading) (e.target as HTMLButtonElement).style.background = 'var(--accent)'; }}
             >
-              {loading ? '登録中…' : '無料で始める'}
+              {loading ? '登録中…' : '無料アカウントを作る →'}
             </button>
+
+            <p style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center', margin: 0 }}>
+              登録すると利用規約・プライバシーポリシーに同意したものとみなします。
+            </p>
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-400 mt-6">
+        <p style={{ marginTop: '24px', fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
           既にアカウントをお持ちの方は{' '}
-          <Link href="/login" className="text-amber-600 font-semibold hover:underline">
+          <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
             ログイン
           </Link>
         </p>
-
       </div>
     </div>
   );

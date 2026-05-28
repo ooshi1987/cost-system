@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import CostraLogo from '@/components/CostraLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,65 +33,109 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div style={{ minHeight: '100svh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
 
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <CostraLogo size={40} />
-          </div>
-          <p className="text-gray-400 text-sm mt-1">ログインしてください</p>
-        </div>
+      {/* Logo */}
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px', textDecoration: 'none' }}>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="13" stroke="var(--accent)" strokeWidth="1.5"/>
+          <path d="M9 14h10M14 9v10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Costra</span>
+      </Link>
 
-        <div className="bg-white rounded-2xl shadow p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">メールアドレス</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="mail@example.com"
-                required
-                autoComplete="email"
-                className="w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-              />
+      {/* Card */}
+      <div style={{ width: '100%', maxWidth: '400px', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-xl)', padding: '36px 32px', boxShadow: 'var(--shadow-md)' }}>
+
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px', marginTop: 0 }}>ログイン</h1>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '28px', marginTop: 0 }}>Costraアカウントにサインインしてください</p>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>メールアドレス</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="mail@example.com"
+              required
+              autoComplete="email"
+              style={{
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r)',
+                padding: '11px 14px',
+                fontSize: '15px',
+                color: 'var(--ink)',
+                background: 'var(--bg)',
+                outline: 'none',
+                transition: 'border-color .15s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
+            />
+          </label>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>パスワード</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="パスワードを入力"
+              required
+              autoComplete="current-password"
+              style={{
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r)',
+                padding: '11px 14px',
+                fontSize: '15px',
+                color: 'var(--ink)',
+                background: 'var(--bg)',
+                outline: 'none',
+                transition: 'border-color .15s',
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
+            />
+          </label>
+
+          {error && (
+            <div style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-2)', borderRadius: 'var(--r)', padding: '10px 14px', color: 'var(--accent)', fontSize: '13px' }}>
+              {error}
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">パスワード</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="パスワード"
-                required
-                autoComplete="current-password"
-                className="w-full border rounded-xl px-4 py-3 text-base focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-              />
-            </div>
+          )}
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">{error}</div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-3.5 rounded-xl font-bold text-base disabled:bg-gray-300 mt-2 transition-colors"
-            >
-              {loading ? 'ログイン中…' : 'ログイン'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-sm text-gray-400 mt-6">
-          アカウントをお持ちでない方は{' '}
-          <Link href="/signup" className="text-amber-600 font-semibold hover:underline">
-            新規登録
-          </Link>
-        </p>
-
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              background: loading ? 'var(--muted)' : 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--r)',
+              padding: '13px',
+              fontSize: '15px',
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginTop: '4px',
+              transition: 'background .15s',
+              fontFamily: 'var(--sans)',
+            }}
+            onMouseEnter={(e) => { if (!loading) (e.target as HTMLButtonElement).style.background = 'var(--accent-h)'; }}
+            onMouseLeave={(e) => { if (!loading) (e.target as HTMLButtonElement).style.background = 'var(--accent)'; }}
+          >
+            {loading ? 'ログイン中…' : 'ログイン'}
+          </button>
+        </form>
       </div>
+
+      <p style={{ marginTop: '24px', fontSize: '13px', color: 'var(--muted)' }}>
+        アカウントをお持ちでない方は{' '}
+        <Link href="/signup" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+          新規登録
+        </Link>
+      </p>
     </div>
   );
 }

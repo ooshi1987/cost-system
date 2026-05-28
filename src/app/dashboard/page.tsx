@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StoreSelector from '@/components/StoreSelector';
-import CostraLogo from '@/components/CostraLogo';
 import MultiStoreLink from '@/components/MultiStoreLink';
 
 interface Stats {
@@ -13,40 +12,6 @@ interface Stats {
   seasoningCount: number;
   avgCostRate: number | null;
 }
-
-const KPI_CARDS = (stats: Stats) => [
-  {
-    label: 'メニュー',
-    value: stats.menuItemCount,
-    unit: '品',
-    icon: '📋',
-    color: 'bg-blue-50 text-blue-600',
-    href: '/menu',
-  },
-  {
-    label: '食材・調味料',
-    value: stats.foodCount + stats.seasoningCount,
-    unit: '種',
-    icon: '🥦',
-    color: 'bg-green-50 text-green-600',
-    href: '/ingredients',
-  },
-  {
-    label: '平均原価率',
-    value: stats.avgCostRate !== null ? stats.avgCostRate : '-',
-    unit: stats.avgCostRate !== null ? '%' : '',
-    icon: '📊',
-    color:
-      stats.avgCostRate === null
-        ? 'bg-gray-50 text-gray-400'
-        : stats.avgCostRate <= 30
-        ? 'bg-amber-50 text-amber-600'
-        : stats.avgCostRate <= 40
-        ? 'bg-orange-50 text-orange-600'
-        : 'bg-red-50 text-red-500',
-    href: null,
-  },
-];
 
 export default function Dashboard() {
   const router = useRouter();
@@ -71,120 +36,145 @@ export default function Dashboard() {
     router.refresh();
   };
 
-  const kpiCards = KPI_CARDS(stats);
+  const costColor =
+    stats.avgCostRate === null ? 'var(--muted)'
+    : stats.avgCostRate <= 30 ? '#16a34a'
+    : stats.avgCostRate <= 40 ? 'var(--accent-2)'
+    : 'var(--accent)';
+
+  const kpiCards = [
+    { label: 'メニュー',   value: stats.menuItemCount, unit: '品', icon: '📋', href: '/menu' },
+    { label: '食材・調味料', value: stats.foodCount + stats.seasoningCount, unit: '種', icon: '🥦', href: '/ingredients' },
+    {
+      label: '平均原価率',
+      value: stats.avgCostRate !== null ? stats.avgCostRate : '—',
+      unit: stats.avgCostRate !== null ? '%' : '',
+      icon: '📊',
+      href: null,
+      valueColor: costColor,
+    },
+  ];
+
+  const subActions = [
+    { href: '/menu',                  icon: '📋', label: 'メニュー',  sub: '価格・原価確認' },
+    { href: '/ingredients',           icon: '🥦', label: '食材',     sub: '原価・単価管理' },
+    { href: '/delivery-history',      icon: '📦', label: '納品履歴', sub: '過去の納品確認' },
+    { href: '/ingredients?type=seasoning', icon: '🧂', label: '調味料', sub: '調味料の単価管理' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-xl mx-auto px-4 pt-6 pb-4">
+    <div style={{ minHeight: '100svh', background: 'var(--bg)' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto', padding: '20px 16px 32px' }}>
 
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between mb-4">
-          <CostraLogo size={32} />
-          <div className="flex items-center gap-1">
-            <Link
-              href="/help/dashboard"
-              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            >
+        {/* ── ヘッダー ── */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+              <circle cx="14" cy="14" r="13" stroke="var(--accent)" strokeWidth="1.5"/>
+              <path d="M9 14h10M14 9v10" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Costra</span>
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <Link href="/help/dashboard" style={{ fontSize: '12px', color: 'var(--muted)', padding: '6px 10px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
               ？使い方
             </Link>
-            <Link
-              href="/admin"
-              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            >
+            <Link href="/admin" style={{ fontSize: '12px', color: 'var(--muted)', padding: '6px 10px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}>
               ⚙️ 設定
             </Link>
             <button
               onClick={handleLogout}
-              className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              style={{ fontSize: '12px', color: 'var(--muted)', padding: '6px 10px', borderRadius: 'var(--r-sm)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--sans)' }}
             >
               ログアウト
             </button>
           </div>
-        </div>
-        {/* 店舗切替 ＋ 全店舗ダッシュボード（tenant_admin かつ複数店舗時のみ表示） */}
-        <div className="mb-4 flex items-center gap-2">
+        </header>
+
+        {/* 店舗切替 */}
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <StoreSelector />
           <MultiStoreLink />
         </div>
 
-        {/* KPIカード */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        {/* ── KPI カード ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px', marginBottom: '20px' }}>
           {kpiCards.map((card) => {
             const inner = (
-              <div className={`rounded-2xl p-3 text-center ${card.color} ${card.href ? 'hover:opacity-80 active:opacity-70 transition-opacity' : ''}`}>
-                <div className="text-xl mb-1">{card.icon}</div>
-                <div className="text-2xl font-bold leading-none">
-                  {loading ? (
-                    <span className="inline-block w-8 h-6 bg-current opacity-10 rounded animate-pulse" />
-                  ) : (
-                    card.value
-                  )}
+              <div style={{
+                background: 'var(--paper)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r-lg)',
+                padding: '14px 8px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '22px', marginBottom: '6px', lineHeight: 1 }}>{card.icon}</div>
+                <div style={{ fontSize: '26px', fontWeight: 700, lineHeight: 1, color: (card as { valueColor?: string }).valueColor ?? 'var(--ink)' }}>
+                  {loading
+                    ? <span style={{ display: 'inline-block', width: '32px', height: '22px', background: 'var(--line-2)', borderRadius: '4px' }} />
+                    : card.value}
                   {!loading && card.unit && (
-                    <span className="text-xs font-normal ml-0.5">{card.unit}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 400, marginLeft: '2px', color: 'var(--muted)' }}>{card.unit}</span>
                   )}
                 </div>
-                <div className="text-[11px] font-medium mt-1 opacity-80">{card.label}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', fontWeight: 500 }}>{card.label}</div>
               </div>
             );
             return card.href ? (
-              <Link key={card.label} href={card.href}>{inner}</Link>
+              <Link key={card.label} href={card.href} style={{ textDecoration: 'none' }}>{inner}</Link>
             ) : (
               <div key={card.label}>{inner}</div>
             );
           })}
         </div>
 
-        {/* メインCTA：スキャン */}
+        {/* ── メイン CTA：スキャン ── */}
         <Link
           href="/delivery"
-          className="flex items-center justify-center gap-2.5 w-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-4 rounded-2xl text-base font-bold shadow-md shadow-amber-200 transition-colors mb-4"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            background: 'var(--accent)',
+            color: '#fff',
+            borderRadius: 'var(--r-lg)',
+            padding: '16px',
+            fontSize: '16px',
+            fontWeight: 700,
+            textDecoration: 'none',
+            marginBottom: '12px',
+            boxShadow: '0 4px 16px rgba(200,74,31,.25)',
+          }}
         >
-          <span className="text-xl">📸</span>
+          <span style={{ fontSize: '20px' }}>📸</span>
           <span>納品書をスキャン</span>
         </Link>
 
-        {/* サブアクション */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href="/menu"
-            className="flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 hover:shadow-md active:bg-gray-50 transition"
-          >
-            <span className="text-2xl">📋</span>
-            <div>
-              <div className="font-semibold text-sm text-gray-800">メニュー</div>
-              <div className="text-[11px] text-gray-400">価格・原価確認</div>
-            </div>
-          </Link>
-          <Link
-            href="/ingredients"
-            className="flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 hover:shadow-md active:bg-gray-50 transition"
-          >
-            <span className="text-2xl">🥦</span>
-            <div>
-              <div className="font-semibold text-sm text-gray-800">食材</div>
-              <div className="text-[11px] text-gray-400">原価・単価管理</div>
-            </div>
-          </Link>
-          <Link
-            href="/delivery-history"
-            className="flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 hover:shadow-md active:bg-gray-50 transition"
-          >
-            <span className="text-2xl">📦</span>
-            <div>
-              <div className="font-semibold text-sm text-gray-800">納品履歴</div>
-              <div className="text-[11px] text-gray-400">過去の納品確認</div>
-            </div>
-          </Link>
-          <Link
-            href="/ingredients?type=seasoning"
-            className="flex items-center gap-3 bg-white rounded-2xl shadow-sm px-4 py-3.5 hover:shadow-md active:bg-gray-50 transition"
-          >
-            <span className="text-2xl">🧂</span>
-            <div>
-              <div className="font-semibold text-sm text-gray-800">調味料</div>
-              <div className="text-[11px] text-gray-400">調味料の単価管理</div>
-            </div>
-          </Link>
+        {/* ── サブアクション ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {subActions.map((a) => (
+            <Link
+              key={a.href}
+              href={a.href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: 'var(--paper)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--r-lg)',
+                padding: '14px 16px',
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ fontSize: '22px' }}>{a.icon}</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{a.label}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '1px' }}>{a.sub}</div>
+              </div>
+            </Link>
+          ))}
         </div>
 
       </div>

@@ -1,26 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ── Costra design tokens (LP と共通) ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:           #faf7f1;
+  --bg-2:         #f4efe5;
+  --paper:        #ffffff;
+  --ink:          #1a1815;
+  --ink-2:        #4a463f;
+  --muted:        #8a8378;
+  --line:         #e6dfd1;
+  --line-2:       #efe9dc;
+  --accent:       #c84a1f;
+  --accent-h:     #a83b17;
+  --accent-2:     #e87b4d;
+  --accent-soft:  #f7e6dc;
+  --sans: "Noto Sans JP", -apple-system, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
+  --r-sm: 6px;
+  --r:    10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --shadow-sm: 0 1px 2px rgba(26,24,21,.04), 0 2px 8px rgba(26,24,21,.04);
+  --shadow-md: 0 4px 12px rgba(26,24,21,.06), 0 12px 32px rgba(26,24,21,.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --font-sans: var(--sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
