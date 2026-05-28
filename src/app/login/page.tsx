@@ -77,7 +77,12 @@ export default function LoginPage() {
           </label>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)' }}>パスワード</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink-2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>パスワード</span>
+              <Link href="/forgot-password" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 500, textDecoration: 'none' }}>
+                お忘れの方
+              </Link>
+            </span>
             <input
               type="password"
               value={password}
