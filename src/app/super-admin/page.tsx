@@ -165,6 +165,12 @@ export default function SuperAdminPage() {
   const [staffMsg, setStaffMsg]               = useState<{ ok: boolean; text: string } | null>(null);
   // 作成済み認証情報（一度だけ表示）
   const [createdCredential, setCreatedCredential] = useState<{ email: string; password: string } | null>(null);
+  // テナント名・店舗名編集
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null);
+  const [editingTenantName, setEditingTenantName] = useState('');
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [editingStoreName, setEditingStoreName] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -247,6 +253,42 @@ export default function SuperAdminPage() {
     });
     setInquiries(prev => prev.map(q => q.id === id ? { ...q, isRead: true } : q));
     setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  const saveTenantName = async (tenantId: string) => {
+    const name = editingTenantName.trim();
+    if (!name) { setEditingTenantId(null); return; }
+    setEditSaving(true);
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, tenantName: name }),
+      });
+      if (res.ok) {
+        setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, name } : t));
+        setEditingTenantId(null);
+      }
+    } finally { setEditSaving(false); }
+  };
+
+  const saveStoreName = async (tenantId: string, storeId: string) => {
+    const name = editingStoreName.trim();
+    if (!name) { setEditingStoreId(null); return; }
+    setEditSaving(true);
+    try {
+      const res = await fetch('/api/super-admin/tenants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId, storeName: name }),
+      });
+      if (res.ok) {
+        setTenants(prev => prev.map(t =>
+          t.id === tenantId ? { ...t, stores: t.stores.map(s => s.id === storeId ? { ...s, name } : s) } : t
+        ));
+        setEditingStoreId(null);
+      }
+    } finally { setEditSaving(false); }
   };
 
   const toggleInternal = async (tenantId: string, current: boolean) => {
@@ -420,19 +462,35 @@ export default function SuperAdminPage() {
               <div className="divide-y">
                 {tenants.map((t) => (
                   <div key={t.id}>
-                    <button
-                      className="w-full text-left px-5 py-4 hover:bg-gray-50 transition-colors"
-                      onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
-                    >
+                    <div className="px-5 py-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-gray-800 truncate">{t.name}</span>
-                            {statusBadge(t.subscriptionStatus)}
-                            {t.isInternal && (
-                              <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">社内</span>
-                            )}
-                          </div>
+                        <div className="min-w-0 flex-1">
+                          {editingTenantId === t.id ? (
+                            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                              <input
+                                autoFocus
+                                value={editingTenantName}
+                                onChange={e => setEditingTenantName(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') saveTenantName(t.id); if (e.key === 'Escape') setEditingTenantId(null); }}
+                                className="flex-1 text-sm font-semibold border border-amber-400 rounded-lg px-2 py-1 focus:outline-none bg-white"
+                              />
+                              <button onClick={() => saveTenantName(t.id)} disabled={editSaving} className="text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 px-2 py-1 rounded-lg">保存</button>
+                              <button onClick={() => setEditingTenantId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">✕</button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-gray-800 truncate">{t.name}</span>
+                              <button
+                                onClick={e => { e.stopPropagation(); setEditingTenantId(t.id); setEditingTenantName(t.name); }}
+                                className="text-gray-300 hover:text-amber-500 transition-colors text-xs px-1"
+                                title="テナント名を編集"
+                              >✏️</button>
+                              {statusBadge(t.subscriptionStatus)}
+                              {t.isInternal && (
+                                <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">社内</span>
+                              )}
+                            </div>
+                          )}
                           <p className="text-xs text-gray-400 mt-0.5 truncate">{t.email}</p>
                         </div>
                         <div className="flex items-center gap-4 ml-4 shrink-0">
@@ -441,10 +499,15 @@ export default function SuperAdminPage() {
                             <span className="mx-1">·</span>
                             <span>{t.userCount}ユーザー</span>
                           </div>
-                          <span className="text-gray-300 text-sm">{expandedId === t.id ? '▲' : '▼'}</span>
+                          <button
+                            onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
+                            className="text-gray-300 text-sm px-2 py-1 hover:text-gray-500"
+                          >
+                            {expandedId === t.id ? '▲' : '▼'}
+                          </button>
                         </div>
                       </div>
-                    </button>
+                    </div>
 
                     {expandedId === t.id && (
                       <div className="bg-gray-50 border-t px-5 py-4">
@@ -558,14 +621,35 @@ export default function SuperAdminPage() {
                             {t.stores.map(s => (
                               <div key={s.id} className="bg-white border rounded-xl px-3 py-2.5">
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                                  {editingStoreId === s.id ? (
+                                    <div className="flex items-center gap-2 flex-1 mr-2">
+                                      <input
+                                        autoFocus
+                                        value={editingStoreName}
+                                        onChange={e => setEditingStoreName(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') saveStoreName(t.id, s.id); if (e.key === 'Escape') setEditingStoreId(null); }}
+                                        className="flex-1 text-sm font-semibold border border-amber-400 rounded-lg px-2 py-1 focus:outline-none bg-white"
+                                      />
+                                      <button onClick={() => saveStoreName(t.id, s.id)} disabled={editSaving} className="text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 px-2 py-1 rounded-lg">保存</button>
+                                      <button onClick={() => setEditingStoreId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                                      <button
+                                        onClick={() => { setEditingStoreId(s.id); setEditingStoreName(s.name); }}
+                                        className="text-gray-300 hover:text-amber-500 transition-colors text-xs"
+                                        title="店舗名を編集"
+                                      >✏️</button>
+                                    </div>
+                                  )}
                                   <button
                                     onClick={() => {
                                       setAddStaffStoreId(addStaffStoreId === s.id ? null : s.id);
                                       setStaffEmail(''); setStaffPassword(''); setStaffName('');
                                       setStaffMsg(null); setCreatedCredential(null);
                                     }}
-                                    className="text-xs text-green-600 hover:text-green-700 font-semibold px-2 py-1 rounded-lg hover:bg-green-50 transition-colors"
+                                    className="text-xs text-green-600 hover:text-green-700 font-semibold px-2 py-1 rounded-lg hover:bg-green-50 transition-colors shrink-0"
                                   >
                                     ＋ スタッフ追加
                                   </button>

@@ -89,23 +89,44 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-/** isInternal フラグをトグル */
+/** isInternal フラグのトグル、テナント名変更、店舗名変更 */
 export async function PATCH(request: NextRequest) {
   if (!(await isSuperAdmin(request))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   try {
-    const { tenantId, isInternal } = await request.json();
-    if (!tenantId || typeof isInternal !== 'boolean') {
-      return NextResponse.json({ error: 'tenantId と isInternal は必須です' }, { status: 400 });
+    const body = await request.json();
+
+    // 店舗名変更
+    if (body.storeId && body.storeName !== undefined) {
+      const updated = await prisma.store.update({
+        where: { id: body.storeId },
+        data: { name: body.storeName.trim() },
+      });
+      return NextResponse.json({ id: updated.id, name: updated.name });
     }
-    const updated = await prisma.tenant.update({
-      where: { id: tenantId },
-      data: { isInternal },
-    });
-    return NextResponse.json({ id: updated.id, isInternal: updated.isInternal });
+
+    // テナント名変更
+    if (body.tenantId && body.tenantName !== undefined) {
+      const updated = await prisma.tenant.update({
+        where: { id: body.tenantId },
+        data: { name: body.tenantName.trim() },
+      });
+      return NextResponse.json({ id: updated.id, name: updated.name });
+    }
+
+    // isInternal フラグをトグル
+    if (body.tenantId && typeof body.isInternal === 'boolean') {
+      const updated = await prisma.tenant.update({
+        where: { id: body.tenantId },
+        data: { isInternal: body.isInternal },
+      });
+      return NextResponse.json({ id: updated.id, isInternal: updated.isInternal });
+    }
+
+    return NextResponse.json({ error: '不正なリクエストです' }, { status: 400 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to update tenant' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
   }
 }
