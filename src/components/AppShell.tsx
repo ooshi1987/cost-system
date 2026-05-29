@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
@@ -16,7 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Sidebar />
+      <Suspense fallback={null}><Sidebar /></Suspense>
       <main className="app-main">{children}</main>
       <BottomNav />
     </>

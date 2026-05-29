@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StoreSelector from './StoreSelector';
 
@@ -82,7 +82,7 @@ const HIDDEN_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-pass
 
 const SUPER_ADMIN_NAV = [
   {
-    href: '/super-admin',
+    href: '/super-admin?tab=overview',
     label: '事業概要',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -117,6 +117,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [me, setMe] = useState<Me | null>(null);
 
+  const searchParams = useSearchParams();
+  const searchTab = searchParams.get('tab') ?? 'overview';
   const isSuperAdmin = pathname.startsWith('/super-admin');
   const hidden =
     HIDDEN_PATHS.includes(pathname) ||
@@ -163,7 +165,7 @@ export default function Sidebar() {
       <nav style={{ padding: '12px 10px', flex: 1 }}>
         {navItems.map(({ href, label, icon }) => {
           const isActive = isSuperAdmin
-            ? pathname === '/super-admin' && href === '/super-admin'
+            ? href.includes('?tab=') ? href === `/super-admin?tab=${searchTab}` : searchTab === 'overview' && href.includes('overview')
             : pathname === href || (!href.includes('?') && pathname.startsWith(href));
           return (
             <Link

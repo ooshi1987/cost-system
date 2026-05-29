@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CostraLogo from '@/components/CostraLogo';
 
 interface Store { id: string; name: string; }
@@ -138,7 +138,7 @@ function PlanBar({ free, basic, pro }: { free: number; basic: number; pro: numbe
   );
 }
 
-export default function SuperAdminPage() {
+function SuperAdminPage() {
   const router = useRouter();
   const [tenants, setTenants]     = useState<Tenant[]>([]);
   const [stats, setStats]         = useState<Stats | null>(null);
@@ -146,7 +146,8 @@ export default function SuperAdminPage() {
   const [error, setError]         = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
-  const [tab, setTab]             = useState<'overview' | 'tenants' | 'inquiries'>('overview');
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get('tab') ?? 'overview') as 'overview' | 'tenants' | 'inquiries';
   // 問い合わせ
   const [inquiries, setInquiries]     = useState<ContactInquiry[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -344,7 +345,7 @@ export default function SuperAdminPage() {
           {([['overview', '📊 事業概要'], ['tenants', '🏪 テナント一覧'], ['inquiries', '💬 問い合わせ']] as const).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => router.push(key === 'overview' ? '/super-admin' : `/super-admin?tab=${key}`)}
               className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors relative ${
                 tab === key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -841,5 +842,14 @@ export default function SuperAdminPage() {
         <p className="text-center text-xs text-gray-300 mt-6">Costra Admin Console · {new Date().getFullYear()}</p>
       </div>
     </div>
+  );
+}
+
+import { Suspense } from 'react';
+export default function SuperAdminPageWrapper() {
+  return (
+    <Suspense>
+      <SuperAdminPage />
+    </Suspense>
   );
 }
