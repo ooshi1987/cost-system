@@ -138,6 +138,78 @@ function PlanBar({ free, basic, pro }: { free: number; basic: number; pro: numbe
   );
 }
 
+/** 返信フォームコンポーネント */
+function ReplyForm({ inquiryId, toEmail, tenantName }: { inquiryId: string; toEmail: string; tenantName: string | null }) {
+  const [body, setBody] = useState('');
+  const [subject, setSubject] = useState('【Costra】お問い合わせへの回答');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleSend = async () => {
+    if (!body.trim()) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/super-admin/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer super-admin-secret',
+        },
+        body: JSON.stringify({ to: toEmail, subject, body, inquiryId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setResult({ ok: true, text: `✅ ${toEmail} に送信しました` });
+        setBody('');
+      } else {
+        setResult({ ok: false, text: `❌ 送信失敗: ${data.error}` });
+      }
+    } catch {
+      setResult({ ok: false, text: '❌ ネットワークエラー' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <div className="text-xs font-bold text-amber-700 mb-3 flex items-center gap-1.5">
+        ✉️ <span>info@cost-system.app</span> から返信
+        {tenantName && <span className="text-amber-500">→ {toEmail}</span>}
+      </div>
+      <input
+        type="text"
+        value={subject}
+        onChange={e => setSubject(e.target.value)}
+        className="w-full text-sm border border-amber-200 rounded-lg px-3 py-2 mb-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+        placeholder="件名"
+      />
+      <textarea
+        value={body}
+        onChange={e => setBody(e.target.value)}
+        rows={5}
+        className="w-full text-sm border border-amber-200 rounded-lg px-3 py-2 mb-3 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+        placeholder="返信内容を入力…"
+      />
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSend}
+          disabled={sending || !body.trim()}
+          className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold px-5 py-2 rounded-lg transition-colors"
+        >
+          {sending ? '送信中…' : '送信する →'}
+        </button>
+        {result && (
+          <span className={`text-xs font-medium ${result.ok ? 'text-green-600' : 'text-red-500'}`}>
+            {result.text}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SuperAdminPage() {
   const router = useRouter();
   const [tenants, setTenants]     = useState<Tenant[]>([]);
@@ -822,14 +894,11 @@ function SuperAdminPage() {
                     <div className="border-t border-gray-100 px-5 py-4">
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{q.content}</p>
                       {q.email && (
-                        <div className="mt-4 flex gap-2 items-center">
-                          <a
-                            href={`mailto:${q.email}?subject=【Costra】お問い合わせへの回答`}
-                            className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
-                          >
-                            ✉️ {q.email} に返信
-                          </a>
-                        </div>
+                        <ReplyForm
+                          inquiryId={q.id}
+                          toEmail={q.email}
+                          tenantName={q.tenantName}
+                        />
                       )}
                     </div>
                   )}
