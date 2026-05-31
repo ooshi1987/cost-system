@@ -44,7 +44,7 @@ if ('IntersectionObserver' in window) {
 }
 
 // Reveal-on-scroll for sections
-const revealEls = document.querySelectorAll('.pain__card, .feature, .plan, .insight');
+const revealEls = document.querySelectorAll('.pain__card, .feature, .plan');
 revealEls.forEach(el => {
   el.style.opacity = '0';
   el.style.transform = 'translateY(20px)';
@@ -65,3 +65,63 @@ if ('IntersectionObserver' in window) {
   }, { threshold: 0.15 });
   revealEls.forEach(el => io2.observe(el));
 }
+
+// Pricing plan-variant toggle
+const switchBtns = document.querySelectorAll('.plan-switch__btn');
+const planGrids = document.querySelectorAll('.plans[data-variant]');
+switchBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const variant = btn.dataset.variant;
+    switchBtns.forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    planGrids.forEach(g => {
+      const on = g.dataset.variant === variant;
+      g.hidden = !on;
+      g.classList.toggle('is-active', on);
+      if (on) {
+        g.querySelectorAll('.plan').forEach(p => {
+          p.style.opacity = '1';
+          p.style.transform = 'translateY(0)';
+        });
+      }
+    });
+  });
+});
+
+// Product dashboard: keep the full desktop layout on phones, scaled to fit.
+// Conveys "look how much gets datafied" rather than being read in detail.
+(function () {
+  const wrap = document.querySelector('.product__screen');
+  if (!wrap) return;
+  const screen = wrap.querySelector('.screen');
+  if (!screen) return;
+  const DESIGN_W = 1080;       // fixed desktop design width of the mock
+  const BREAKPOINT = 880;      // matches the CSS layout-restore media query
+
+  function fit() {
+    if (window.innerWidth <= BREAKPOINT) {
+      const avail = wrap.clientWidth;
+      const scale = avail / DESIGN_W;
+      screen.style.width = DESIGN_W + 'px';
+      screen.style.transformOrigin = 'top left';
+      screen.style.transform = 'scale(' + scale + ')';
+      // collapse the vertical space the scale-down leaves behind
+      wrap.style.overflow = 'hidden';
+      wrap.style.height = (screen.offsetHeight * scale) + 'px';
+    } else {
+      screen.style.width = '';
+      screen.style.transform = '';
+      screen.style.transformOrigin = '';
+      wrap.style.overflow = '';
+      wrap.style.height = '';
+    }
+  }
+
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
