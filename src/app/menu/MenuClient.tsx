@@ -4,12 +4,17 @@ import { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import UpgradeModal from '@/components/UpgradeModal';
 
+interface RecipeIngredient {
+  costPerUnit: number;
+  _count: { deliveryItems: number };
+}
+
 interface MenuItem {
   id: string;
   name: string;
   sellingPrice: number;
   category?: string;
-  recipeItems: { id: string }[];
+  recipeItems: { id: string; quantity: number; ingredient: RecipeIngredient }[];
 }
 
 interface ExtractedItem {
@@ -31,9 +36,10 @@ type ImportStep = 'idle' | 'uploading' | 'preview' | 'saving' | 'done';
 interface Props {
   initialMenuItems: MenuItem[];
   initialCategoryOrder: string[];
+  targetCostRate?: number;
 }
 
-export default function MenuClient({ initialMenuItems, initialCategoryOrder }: Props) {
+export default function MenuClient({ initialMenuItems, initialCategoryOrder, targetCostRate = 30 }: Props) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(initialMenuItems);
   const [savedCategoryOrder, setSavedCategoryOrder] = useState<string[]>(initialCategoryOrder);
 
@@ -444,12 +450,28 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder }: P
                             </div>
                           );
                         }
+                        const totalCost = item.recipeItems.reduce((s, r) => s + r.ingredient.costPerUnit * r.quantity, 0);
+                        const costRate = item.sellingPrice > 0 && item.recipeItems.length > 0 ? (totalCost / item.sellingPrice) * 100 : null;
+                        const unlinkedCount = item.recipeItems.filter((r) => r.ingredient._count.deliveryItems === 0 && r.ingredient.costPerUnit <= 0).length;
+                        const badgeColor = costRate === null ? 'bg-gray-100 text-gray-400' :
+                          unlinkedCount > 0 ? 'bg-amber-100 text-amber-700' :
+                          costRate <= targetCostRate ? 'bg-green-100 text-green-700' :
+                          'bg-orange-100 text-orange-700';
                         return (
                           <div key={item.id} className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition group">
-                            <Link href={`/menu/${item.id}/recipe`} className="flex-1 min-w-0 flex items-center gap-4">
-                              <span className="flex-1 text-sm font-medium truncate">{item.name}</span>
-                              <span className="text-sm font-semibold text-amber-600 shrink-0">¥{item.sellingPrice.toLocaleString()}</span>
-                              <span className="text-xs text-gray-400 shrink-0 hidden sm:inline">レシピ {item.recipeItems.length}件</span>
+                            <Link href={`/menu/${item.id}/recipe`} className="flex-1 min-w-0 flex items-center gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{item.name}</div>
+                                <div className="text-xs text-gray-400 mt-0.5">
+                                  ¥{item.sellingPrice.toLocaleString()}
+                                  {item.recipeItems.length > 0 && (
+                                    <> · 材料費 ¥{totalCost.toFixed(0)}{unlinkedCount > 0 && <> · <span className="text-amber-500">未連動{unlinkedCount}件</span></>}</>
+                                  )}
+                                </div>
+                              </div>
+                              <div className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}>
+                                {costRate !== null ? `${costRate.toFixed(1)}%${unlinkedCount > 0 ? '※' : ''}` : 'レシピ未登録'}
+                              </div>
                             </Link>
                             <button onClick={() => startEdit(item)} disabled={editingId !== null} className="text-gray-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">✏️</button>
                             <button onClick={() => deleteItem(item.id)} disabled={editingId !== null} className="text-gray-300 hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">🗑️</button>

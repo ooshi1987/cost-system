@@ -10,7 +10,15 @@ export async function GET(request: NextRequest) {
 
     const menuItems = await prisma.menuItem.findMany({
       where: { storeId: auth.storeId },
-      include: { recipeItems: { include: { ingredient: true } } },
+      include: {
+        recipeItems: {
+          include: {
+            ingredient: {
+              include: { _count: { select: { deliveryItems: true } } },
+            },
+          },
+        },
+      },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
     return NextResponse.json(menuItems);
