@@ -22,11 +22,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       include: {
         ingredient: {
           include: {
-            _count: { select: { deliveryItems: true } },
             deliveryItems: {
               orderBy: { deliverySlip: { createdAt: 'desc' } },
               take: 1,
-              include: { deliverySlip: { select: { createdAt: true } } },
+              include: { deliverySlip: { select: { createdAt: true, vendor: true } } },
             },
           },
         },

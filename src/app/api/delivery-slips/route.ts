@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const auth = await getAuth(request);
     if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { items } = (await request.json()) as { items: SaveItem[] };
+    const { items, vendor } = (await request.json()) as { items: SaveItem[]; vendor?: string | null };
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'アイテムがありません' }, { status: 400 });
     }
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       data: {
         storeId,
         ocrRawData: JSON.stringify(items),
+        vendor: vendor?.trim() || null,
         processedAt: new Date(),
         deliveryItems: {
           create: await Promise.all(
@@ -56,12 +57,12 @@ export async function POST(request: NextRequest) {
 
               if (!ingredient) {
                 ingredient = await prisma.ingredient.create({
-                  data: { storeId, name: item.name, unit: item.unit, costPerUnit: item.totalPrice / item.quantity, type: itemType },
+                  data: { storeId, name: item.name, unit: item.unit, costPerUnit: item.totalPrice / item.quantity, type: itemType, priceSource: 'delivery' },
                 });
               } else {
                 await prisma.ingredient.update({
                   where: { id: ingredient.id },
-                  data: { costPerUnit: item.totalPrice / item.quantity, type: itemType },
+                  data: { costPerUnit: item.totalPrice / item.quantity, type: itemType, priceSource: 'delivery' },
                 });
               }
 

@@ -47,15 +47,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const parsedCost = parseFloat(costPerUnit);
     const ingredient = await prisma.ingredient.create({
       data: {
         storeId: auth.storeId,
         name,
         unit,
-        costPerUnit: parseFloat(costPerUnit),
+        costPerUnit: parsedCost,
         type: type || 'food',
         category: category || null,
         sortOrder: sortOrder != null ? parseInt(sortOrder) : null,
+        priceSource: parsedCost > 0 ? 'manual' : 'unset',
       },
     });
     return NextResponse.json(ingredient, { status: 201 });

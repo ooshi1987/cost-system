@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 
 // ─── Types ───────────────────────────────────────────────
 
-interface DeliverySlipRef { createdAt: string }
+interface DeliverySlipRef { createdAt: string; vendor: string | null }
 interface DeliveryItemRef { deliverySlip: DeliverySlipRef }
 
 interface IngredientWithLinkage {
@@ -15,7 +15,7 @@ interface IngredientWithLinkage {
   unit: string;
   costPerUnit: number;
   category: string | null;
-  _count: { deliveryItems: number };
+  priceSource: string;
   deliveryItems: DeliveryItemRef[];
 }
 
@@ -57,17 +57,18 @@ type ImportStep = 'idle' | 'uploading' | 'preview' | 'saving' | 'done';
 type LinkageStatus = 'linked' | 'manual' | 'unlinked';
 
 function getLinkageStatus(ing: IngredientWithLinkage): LinkageStatus {
-  if (ing._count.deliveryItems > 0) return 'linked';
-  if (ing.costPerUnit > 0) return 'manual';
+  if (ing.priceSource === 'delivery') return 'linked';
+  if (ing.priceSource === 'manual') return 'manual';
   return 'unlinked';
 }
 
 function getLinkageBadge(ing: IngredientWithLinkage): { status: LinkageStatus; text: string } {
   const status = getLinkageStatus(ing);
   if (status === 'linked') {
-    const raw = ing.deliveryItems[0]?.deliverySlip?.createdAt;
-    const dateStr = raw ? new Date(raw).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }) : '';
-    return { status, text: `仕入連動 ${dateStr}・¥${ing.costPerUnit.toFixed(2)}/${ing.unit}` };
+    const slip = ing.deliveryItems[0]?.deliverySlip;
+    const dateStr = slip?.createdAt ? new Date(slip.createdAt).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' }) : '';
+    const vendorStr = slip?.vendor ? `${slip.vendor} ` : '';
+    return { status, text: `仕入連動 ${vendorStr}${dateStr}・¥${ing.costPerUnit.toFixed(2)}/${ing.unit}` };
   }
   if (status === 'manual') return { status, text: `手入力単価 ¥${ing.costPerUnit.toFixed(2)}/${ing.unit}` };
   return { status, text: '⚠ 単価未連動 — タップで入力' };
