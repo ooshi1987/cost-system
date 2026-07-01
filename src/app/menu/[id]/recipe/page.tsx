@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -37,20 +37,6 @@ interface IngredientBasic {
   unit: string;
   costPerUnit: number;
 }
-
-// 取込プレビュー行
-interface ImportItem {
-  name: string;
-  qty: number | null;
-  unit: string;
-  unit_cost: number | null;
-  line_cost: number | null;
-  matched_ingredient_id: string | null;
-  matched_cost_per_unit: number | null;
-  selected: boolean;
-}
-
-type ImportStep = 'idle' | 'uploading' | 'preview' | 'saving' | 'done';
 
 // ─── Linkage helpers ─────────────────────────────────────
 
@@ -97,15 +83,6 @@ export default function RecipePage() {
   const [editCost, setEditCost] = useState('');
   const [editIngId, setEditIngId] = useState('');
   const [editSaving, setEditSaving] = useState(false);
-
-  // 取込フロー
-  const [importStep, setImportStep] = useState<ImportStep>('idle');
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importItems, setImportItems] = useState<ImportItem[]>([]);
-  const [importMenuName, setImportMenuName] = useState('');
-  const [importSellPrice, setImportSellPrice] = useState<number | null>(null);
-  const [importStatedTotal, setImportStatedTotal] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecipe = useCallback(async () => {
     try {
@@ -221,83 +198,6 @@ export default function RecipePage() {
     finally { setEditSaving(false); }
   };
 
-  // ─── 取込 ────────────────────────────────────────────────
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 15 * 1024 * 1024) { setImportError('ファイルが大きすぎます（15MB以下にしてください）'); return; }
-    setImportError(null);
-    setImportStep('uploading');
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    try {
-      const fd = new FormData(); fd.append('file', file);
-      const res = await fetch('/api/recipes/import', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) { setImportError(data.error || '読み取りに失敗しました'); setImportStep('idle'); return; }
-      setImportMenuName(data.menu_name ?? '');
-      setImportSellPrice(data.sell_price ?? null);
-      setImportStatedTotal(data.stated_total_cost ?? null);
-      setImportItems(data.items.map((item: Omit<ImportItem, 'selected'>) => ({ ...item, selected: true })));
-      setImportStep('preview');
-    } catch { setImportError('エラーが発生しました'); setImportStep('idle'); }
-  };
-
-  const updateImportItem = (i: number, field: keyof ImportItem, value: unknown) => {
-    setImportItems((prev) => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
-  };
-
-  // 取込プレビューの合計照合
-  const importCalcTotal = importItems.filter((i) => i.selected).reduce((sum, item) => {
-    const cost = item.unit_cost && item.qty ? item.unit_cost * item.qty : (item.line_cost ?? 0);
-    return sum + cost;
-  }, 0);
-  const importDiff = importStatedTotal !== null ? importCalcTotal - importStatedTotal : null;
-  const importUnlinked = importItems.filter((i) => i.selected && !i.matched_ingredient_id).length;
-
-  const saveImport = async () => {
-    const selected = importItems.filter((i) => i.selected);
-    if (selected.length === 0) return;
-    setImportStep('saving');
-    try {
-      for (const item of selected) {
-        let ingredientId = item.matched_ingredient_id;
-
-        if (!ingredientId) {
-          // 新規食材を作成
-          const res = await fetch('/api/ingredients', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: item.name, unit: item.unit || 'g', costPerUnit: item.unit_cost ?? 0 }),
-          });
-          if (res.ok) { const d = await res.json(); ingredientId = d.id; }
-          else { continue; }
-        } else if (item.unit_cost !== null && item.unit_cost !== item.matched_cost_per_unit) {
-          // 既存食材の単価を更新
-          const ing = allIngredients.find((a) => a.id === ingredientId);
-          if (ing) {
-            await fetch(`/api/ingredients/${ingredientId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: ing.name, unit: item.unit || ing.unit, costPerUnit: item.unit_cost, category: null }),
-            });
-          }
-        }
-
-        if (ingredientId && item.qty) {
-          await fetch('/api/recipes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ menuItemId: menuId, ingredientId, quantity: item.qty }),
-          });
-        }
-      }
-      await Promise.all([fetchRecipe(), fetchIngredients()]);
-      setImportStep('done');
-    } catch { alert('保存中にエラーが発生しました'); setImportStep('preview'); }
-  };
-
-  const resetImport = () => { setImportStep('idle'); setImportItems([]); setImportError(null); setImportMenuName(''); setImportSellPrice(null); setImportStatedTotal(null); };
-
   // ─── Render ───────────────────────────────────────────────
   if (loading) return <div className="p-6 text-gray-500">読み込み中...</div>;
   if (!menuItem) return <div className="p-6 text-gray-500">メニューが見つかりません</div>;
@@ -348,135 +248,14 @@ export default function RecipePage() {
           </div>
         </div>
 
-        {/* 取込セクション */}
-        <div className="bg-white rounded-xl shadow p-4 mb-4">
-          <h2 className="text-sm font-bold text-gray-600 mb-3">📷 原価表・レシピ表から取込</h2>
-          {importStep === 'idle' && (
-            <>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-amber-300 rounded-xl py-6 text-center hover:border-amber-400 hover:bg-amber-50 transition"
-              >
-                <div className="text-2xl mb-1">📂</div>
-                <div className="font-semibold text-amber-600 text-sm">画像を選択して取込</div>
-                <div className="text-xs text-gray-400 mt-1">JPG・PNG・PDF対応（15MB以下）</div>
-              </button>
-              {importError && <div className="mt-3 text-red-600 bg-red-50 rounded-xl p-3 text-sm">❌ {importError}</div>}
-              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="hidden" />
-            </>
-          )}
-
-          {importStep === 'uploading' && (
-            <div className="py-10 text-center">
-              <div className="text-3xl mb-3 animate-spin">⚙️</div>
-              <p className="font-semibold text-gray-700">Claudeが原価表を読み取っています…</p>
-            </div>
-          )}
-
-          {(importStep === 'preview' || importStep === 'saving' || importStep === 'done') && (
-            <>
-              {importMenuName && (
-                <div className="mb-3 text-sm text-gray-600">
-                  <span className="font-semibold">抽出メニュー名:</span> {importMenuName}
-                  {importSellPrice && <span className="ml-2 text-amber-600 font-medium">¥{importSellPrice.toLocaleString()}</span>}
-                </div>
-              )}
-
-              {/* 合計照合バッジ */}
-              {importStatedTotal !== null ? (
-                importDiff !== null && Math.abs(importDiff) < 1 && importUnlinked === 0 ? (
-                  <div className="mb-3 flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-sm text-green-700">
-                    <span>✓</span><span>原価表の記載（¥{importStatedTotal.toFixed(0)}）と一致</span>
-                  </div>
-                ) : (
-                  <div className="mb-3 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-sm text-amber-700">
-                    <span>⚠</span>
-                    <span>
-                      原価表の記載 ¥{importStatedTotal.toFixed(0)} と差額 {importDiff !== null ? `${importDiff >= 0 ? '+' : ''}¥${importDiff.toFixed(0)}` : ''}。材料・単価を確認してください
-                    </span>
-                  </div>
-                )
-              ) : (
-                <div className="mb-3 flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2 text-sm text-amber-700">
-                  <span>⚠</span><span>合計を読み取れませんでした</span>
-                </div>
-              )}
-
-              {importStep === 'preview' && (
-                <div className="mb-3 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">✏️ 数量・単価は直接クリックして編集できます</div>
-              )}
-
-              <div className="space-y-2 mb-4">
-                {importItems.map((item, i) => (
-                  <div key={i} className={`border rounded-xl p-3 ${item.matched_ingredient_id ? 'border-gray-200 bg-white' : 'border-amber-300 bg-amber-50'}`}>
-                    <div className="flex items-start gap-2">
-                      {importStep === 'preview' && (
-                        <input type="checkbox" checked={item.selected} onChange={() => updateImportItem(i, 'selected', !item.selected)} className="mt-1 w-4 h-4 flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{item.name}</div>
-                        <div className="flex gap-2 mt-1 flex-wrap">
-                          {importStep === 'preview' ? (
-                            <>
-                              <label className="flex items-center gap-1 text-xs">
-                                <span className="text-gray-400">数量</span>
-                                <input
-                                  type="number"
-                                  value={item.qty ?? ''}
-                                  onChange={(e) => updateImportItem(i, 'qty', e.target.value ? parseFloat(e.target.value) : null)}
-                                  className="w-16 border rounded-md px-2 py-0.5 text-xs focus:outline-none focus:border-amber-400"
-                                />
-                                <span className="text-gray-400">{item.unit}</span>
-                              </label>
-                              <label className="flex items-center gap-1 text-xs">
-                                <span className="text-gray-400">単価</span>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.unit_cost ?? ''}
-                                  onChange={(e) => updateImportItem(i, 'unit_cost', e.target.value ? parseFloat(e.target.value) : null)}
-                                  className="w-20 border rounded-md px-2 py-0.5 text-xs focus:outline-none focus:border-amber-400"
-                                />
-                                <span className="text-gray-400">円/{item.unit}</span>
-                              </label>
-                            </>
-                          ) : (
-                            <span className="text-xs text-gray-500">{item.qty}{item.unit} × ¥{item.unit_cost?.toFixed(2) ?? '?'}/{item.unit}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs text-right flex-shrink-0">
-                        {item.matched_ingredient_id
-                          ? <span className="text-green-600 font-medium">連動</span>
-                          : <span className="text-amber-600">要確認</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-sm text-right text-gray-600 mb-3 font-medium">
-                材料費合計: ¥{importCalcTotal.toFixed(0)}
-              </div>
-
-              {importStep === 'preview' && (
-                <div className="flex gap-2">
-                  <button onClick={saveImport} disabled={importItems.filter((i) => i.selected).length === 0} className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl font-semibold hover:bg-amber-600 disabled:bg-gray-300 text-sm">
-                    {importItems.filter((i) => i.selected).length}件を登録する
-                  </button>
-                  <button onClick={resetImport} className="px-4 py-2.5 border rounded-xl text-gray-600 hover:bg-gray-50 text-sm">取消</button>
-                </div>
-              )}
-              {importStep === 'saving' && <div className="text-center py-2 text-amber-600 font-semibold text-sm">登録中...</div>}
-              {importStep === 'done' && (
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-green-50 border border-green-200 rounded-xl p-3 text-center text-green-700 font-semibold text-sm">✅ 登録が完了しました</div>
-                  <button onClick={resetImport} className="px-4 py-2 border rounded-xl text-gray-600 hover:bg-gray-50 text-sm">閉じる</button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        {/* 取込導線 */}
+        <Link
+          href="/menu/import"
+          className="mb-4 flex items-center gap-2 bg-white rounded-xl shadow p-4 border-2 border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-50 transition text-sm"
+        >
+          <span className="text-xl">📷</span>
+          <span><span className="font-semibold text-amber-600">原価表・レシピ表を撮影で取込</span><span className="text-gray-400 block text-xs mt-0.5">一覧をまとめて撮影すると、複数メニューを自動で振り分けます</span></span>
+        </Link>
 
         {/* レシピ明細 */}
         <div className="bg-white rounded-xl shadow p-4 mb-4">
