@@ -12,9 +12,7 @@ export default async function MenuPage() {
       where: { storeId: auth.storeId },
       include: {
         recipeItems: {
-          include: {
-            ingredient: { include: { _count: { select: { deliveryItems: true } } } },
-          },
+          include: { ingredient: true },
         },
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -42,7 +40,7 @@ export default async function MenuPage() {
       quantity: r.quantity,
       ingredient: {
         costPerUnit: r.ingredient.costPerUnit,
-        _count: r.ingredient._count,
+        priceSource: r.ingredient.priceSource,
       },
     })),
   }));

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface OCRResult {
+  vendor?: string | null;
   items: Array<{
     ingredientName: string;
     quantity: number;
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
               type: 'text',
               text: `これは納品書またはレシートの画像です。
 以下の情報を JSON 形式で抽出してください:
+- 取引先名（発行元の会社名・店舗名。読み取れなければ null）
 - 商品名（食材・調味料）
 - 数量（数値のみ）
 - 単位（g / ml / 個 / 本 / 枚 / 袋 / パック / ケース など実際の単位を使用）
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
 
 レスポンス形式（JSON のみ返してください）:
 {
+  "vendor": "〇〇食品株式会社",
   "items": [
     {"ingredientName": "鶏もも肉", "quantity": 1000, "unit": "g", "totalPrice": 1000, "type": "food"},
     {"ingredientName": "長ネギ", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food"},
@@ -75,7 +78,8 @@ export async function POST(request: NextRequest) {
 注意:
 - 合計金額が読み取れないものは除外してください
 - 商品名は店舗が分かりやすい名前に正規化してください
-- レジ袋など食材以外も含めてください（その場合は type: "food" としてください）`,
+- レジ袋など食材以外も含めてください（その場合は type: "food" としてください）
+- 取引先名が読み取れない場合は vendor に null を入れてください`,
             },
           ],
         },
@@ -96,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
+      vendor: ocrResult.vendor ?? null,
       items: ocrResult.items.map((item) => ({
         name: item.ingredientName,
         quantity: item.quantity,

@@ -12,11 +12,7 @@ export async function GET(request: NextRequest) {
       where: { storeId: auth.storeId },
       include: {
         recipeItems: {
-          include: {
-            ingredient: {
-              include: { _count: { select: { deliveryItems: true } } },
-            },
-          },
+          include: { ingredient: true },
         },
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],

@@ -103,6 +103,7 @@ model Ingredient {
   type          String    @default("food")           // "food" | "seasoning"
   category      String?
   sortOrder     Int?
+  priceSource   String    @default("manual")         // "delivery" | "manual" | "unset"
   lastUpdated   DateTime  @updatedAt
 
   store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -168,6 +169,7 @@ model DeliverySlip {
   storeId       String
   photoPath     String?
   ocrRawData    String?
+  vendor        String?                              // 取引先名（OCR抽出 or 手入力）
   createdAt     DateTime  @default(now())
   processedAt   DateTime?
 

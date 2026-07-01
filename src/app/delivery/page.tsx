@@ -18,6 +18,7 @@ export default function DeliveryPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [pageState, setPageState] = useState<PageState>('capture');
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
+  const [vendor, setVendor] = useState('');
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // タップ編集用
@@ -99,6 +100,7 @@ export default function DeliveryPage() {
           type: item.type ?? 'food',
         }))
       );
+      setVendor(data.vendor ?? '');
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setPageState('reviewing');
@@ -121,6 +123,7 @@ export default function DeliveryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          vendor: vendor.trim() || null,
           items: validItems.map((item) => ({
             name: item.name.trim(),
             quantity: parseFloat(item.quantity),
@@ -165,6 +168,7 @@ export default function DeliveryPage() {
   const resetToCapture = () => {
     setPreview(null);
     setEditableItems([]);
+    setVendor('');
     setError(null);
     setPageState('capture');
     setEditingIdx(null);
@@ -274,6 +278,17 @@ export default function DeliveryPage() {
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-gray-700">{editableItems.length}件を読み取りました</p>
               <p className="text-xs text-gray-400">間違いはタップして修正</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1 text-gray-600">取引先名（任意）</label>
+              <input
+                value={vendor}
+                onChange={(e) => setVendor(e.target.value)}
+                placeholder="例：〇〇食品株式会社"
+                disabled={pageState === 'saving'}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400"
+              />
             </div>
 
             {/* ── スマホ: カード ── */}

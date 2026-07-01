@@ -6,7 +6,7 @@ import UpgradeModal from '@/components/UpgradeModal';
 
 interface RecipeIngredient {
   costPerUnit: number;
-  _count: { deliveryItems: number };
+  priceSource: string;
 }
 
 interface MenuItem {
@@ -452,7 +452,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                         }
                         const totalCost = item.recipeItems.reduce((s, r) => s + r.ingredient.costPerUnit * r.quantity, 0);
                         const costRate = item.sellingPrice > 0 && item.recipeItems.length > 0 ? (totalCost / item.sellingPrice) * 100 : null;
-                        const unlinkedCount = item.recipeItems.filter((r) => r.ingredient._count.deliveryItems === 0 && r.ingredient.costPerUnit <= 0).length;
+                        const unlinkedCount = item.recipeItems.filter((r) => r.ingredient.priceSource === 'unset').length;
                         const badgeColor = costRate === null ? 'bg-gray-100 text-gray-400' :
                           unlinkedCount > 0 ? 'bg-amber-100 text-amber-700' :
                           costRate <= targetCostRate ? 'bg-green-100 text-green-700' :
