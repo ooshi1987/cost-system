@@ -263,6 +263,15 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
         </div>
         <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">メニュー管理</h1>
 
+        {/* 原価表 撮影で一括取込 */}
+        <Link
+          href="/menu/import"
+          className="block bg-white rounded-lg shadow p-4 sm:p-6 mb-6 border-2 border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-50 transition"
+        >
+          <h2 className="text-xl font-bold mb-1">📷 原価表・レシピ表を撮影で取込</h2>
+          <p className="text-sm text-gray-500">一覧をまとめて撮影すると、AIがメニューごとに分けて読み取り、既存メニューへの統合・新規登録を自動で振り分けます</p>
+        </Link>
+
         {/* PDFインポート */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
           <h2 className="text-xl font-bold mb-1">📄 メニュー表から一括インポート</h2>
