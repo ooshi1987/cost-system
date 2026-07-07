@@ -25,6 +25,17 @@ const NAV_ITEMS = [
     ),
   },
   {
+    href: '/daily-ledger',
+    label: '日次集計表',
+    exact: false,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M1.5 6h13M6 6v7.5" stroke="currentColor" strokeWidth="1.4"/>
+      </svg>
+    ),
+  },
+  {
     href: '/delivery',
     label: '仕入れ',
     exact: true,
