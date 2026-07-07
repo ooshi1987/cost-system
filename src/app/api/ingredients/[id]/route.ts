@@ -17,9 +17,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const existing = await prisma.ingredient.findFirst({ where: { id, storeId: auth.storeId } });
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+    const parsedCost = parseFloat(costPerUnit);
     const ingredient = await prisma.ingredient.update({
       where: { id },
-      data: { name, unit, costPerUnit: parseFloat(costPerUnit), category: category || null },
+      data: { name, unit, costPerUnit: parsedCost, category: category || null, priceSource: parsedCost > 0 ? 'manual' : 'unset' },
     });
     return NextResponse.json(ingredient);
   } catch (error) {
