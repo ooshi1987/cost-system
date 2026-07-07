@@ -77,6 +77,8 @@ model Store {
   menuItems     MenuItem[]
   deliverySlips DeliverySlip[]
   settings      Settings[]
+  categories    Category[]
+  transactions  Transaction[]
 
   @@index([tenantId])
 }
@@ -192,6 +194,58 @@ model DeliveryItem {
 
   @@index([deliverySlipId])
   @@index([ingredientId])
+}
+
+// 会計科目マスタ（費用・収益）
+model Category {
+  id          String   @id @default(cuid())
+  storeId     String
+  name        String
+  kind        String                          // "expense" | "income"
+  color       String?                         // 表示用（任意）
+  autoVendors String?                         // 自動割り当て用の取引先名（カンマ区切り, 任意）
+  sortOrder   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store        Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@index([storeId, kind])
+  @@index([storeId, sortOrder])
+}
+
+// 取引（売上・経費）
+//
+// 設計判断（重要・二重計上防止）: 既存 DeliverySlip/DeliveryItem は「仕入→食材単価更新」専用のまま据え置く。
+// 仕入を含む経費は Transaction(type:"expense") に記録し、P&L集計では 経費 = Σ Transaction(expense) とする。
+// DeliveryItem は原価/食材単価更新の軸としてのみ使い、P&Lには加算しない（二重計上防止）。
+model Transaction {
+  id          String   @id @default(cuid())
+  storeId     String
+  type        String                          // "sale" | "expense"
+  date        DateTime                         // 取引日（時刻不問）
+  amount      Float                            // 円（常に正の値。type で符号を解釈）
+  categoryId  String?
+  vendor      String?                          // 取引先（経費）/ チャネル名（売上）
+  method      String   @default("cash")        // "cash" | "cashless" | "transfer" | "other"
+  memo        String?
+  source      String   @default("manual")      // "manual" | "ocr" | "integration"
+  needsReview Boolean  @default(false)          // 要確認フラグ
+  imagePath   String?                          // レシート画像（OCR由来）
+  statedTotal Float?                            // レシート記載合計（合計照合用, 任意）
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([storeId])
+  @@index([storeId, date])
+  @@index([storeId, type])
+  @@index([storeId, needsReview])
 }
 
 // パスワードリセットトークン
