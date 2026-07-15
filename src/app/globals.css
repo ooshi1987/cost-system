@@ -15,6 +15,10 @@
   --accent-h:     #a83b17;
   --accent-2:     #e87b4d;
   --accent-soft:  #f7e6dc;
+  --warn:         #b06a12;
+  --warn-soft:    #fbe7cf;
+  --success:      #1f8a5b;
+  --success-soft: #e4efe9;
   --sans: "Noto Sans JP", -apple-system, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
   --r-sm: 6px;
   --r:    10px;

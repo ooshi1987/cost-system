@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [ingredientGroups, menuItemCount, menuItemsWithRecipes, monthlyDeliveryItems, unprocessedSlips, user] = await Promise.all([
+  const [ingredientGroups, menuItemCount, menuItemsWithRecipes, monthlyDeliveryItems, unprocessedSlips, user, store, salesAgg, expenseAgg, reviewCount] = await Promise.all([
     prisma.ingredient.groupBy({ by: ['type'], where: { storeId }, _count: { id: true } }),
     prisma.menuItem.count({ where: { storeId } }),
     prisma.menuItem.findMany({ where: { storeId }, include: { recipeItems: { include: { ingredient: true } } } }),
@@ -21,6 +21,10 @@ export default async function DashboardPage() {
     }),
     prisma.deliverySlip.count({ where: { storeId, processedAt: null } }),
     prisma.user.findUnique({ where: { id: auth.userId }, select: { name: true } }),
+    prisma.store.findUnique({ where: { id: storeId }, select: { name: true } }),
+    prisma.transaction.aggregate({ where: { storeId, type: 'sale', date: { gte: monthStart } }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { storeId, type: 'expense', date: { gte: monthStart } }, _sum: { amount: true } }),
+    prisma.transaction.count({ where: { storeId, needsReview: true } }),
   ]);
 
   const foodCount = ingredientGroups.find((g) => g.type === 'food')?._count.id ?? 0;
@@ -45,6 +49,9 @@ export default async function DashboardPage() {
   const recipeCount = menuItemsWithRecipes.filter((item) => item.recipeItems.length > 0).length;
   const monthlyPurchaseTotal = monthlyDeliveryItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
+  const monthSalesTotal = salesAgg._sum.amount ?? 0;
+  const monthExpenseTotal = expenseAgg._sum.amount ?? 0;
+
   return (
     <DashboardClient
       stats={{
@@ -56,10 +63,13 @@ export default async function DashboardPage() {
         monthlyPurchaseTotal,
         unprocessedSlips,
         topCostItems,
+        monthSalesTotal,
+        monthExpenseTotal,
+        reviewCount,
       }}
       me={{
         name: user?.name ?? null,
-        storeName: null,
+        storeName: store?.name ?? null,
       }}
     />
   );

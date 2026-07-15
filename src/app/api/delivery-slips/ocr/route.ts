@@ -3,12 +3,14 @@ import Anthropic from '@anthropic-ai/sdk';
 
 interface OCRResult {
   vendor?: string | null;
+  statedTotal?: number | null;
   items: Array<{
     ingredientName: string;
     quantity: number;
     unit: string;
     totalPrice: number;
     type: 'food' | 'seasoning';
+    needsReview?: boolean;
   }>;
 }
 
@@ -55,11 +57,13 @@ export async function POST(request: NextRequest) {
               text: `これは納品書またはレシートの画像です。
 以下の情報を JSON 形式で抽出してください:
 - 取引先名（発行元の会社名・店舗名。読み取れなければ null）
+- レシート・納品書に記載されている合計金額（statedTotal、円、数値のみ。読み取れなければ null）
 - 商品名（食材・調味料）
 - 数量（数値のみ）
 - 単位（g / ml / 個 / 本 / 枚 / 袋 / パック / ケース など実際の単位を使用）
 - 合計金額（円、数値のみ）
 - 種別（"food" または "seasoning"）
+- needsReview（読み取りに自信が無い行は true。文字がかすれている・数量や単価の計算が合わない・手書きで判読しづらい等の場合に true にする）
 
 種別の判定基準:
 - "seasoning"（調味料）: 醤油・味噌・塩・砂糖・酢・みりん・酒・油・ソース・ドレッシング・スパイス・だし・コンソメ・小麦粉・片栗粉・パン粉・マヨネーズ・ケチャップ など調理に使う調味料・粉類
@@ -68,10 +72,11 @@ export async function POST(request: NextRequest) {
 レスポンス形式（JSON のみ返してください）:
 {
   "vendor": "〇〇食品株式会社",
+  "statedTotal": 23300,
   "items": [
-    {"ingredientName": "鶏もも肉", "quantity": 1000, "unit": "g", "totalPrice": 1000, "type": "food"},
-    {"ingredientName": "長ネギ", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food"},
-    {"ingredientName": "醤油", "quantity": 1, "unit": "本", "totalPrice": 298, "type": "seasoning"}
+    {"ingredientName": "鶏もも肉", "quantity": 1000, "unit": "g", "totalPrice": 1000, "type": "food", "needsReview": false},
+    {"ingredientName": "長ネギ", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food", "needsReview": false},
+    {"ingredientName": "醤油", "quantity": 1, "unit": "本", "totalPrice": 298, "type": "seasoning", "needsReview": true}
   ]
 }
 
@@ -79,7 +84,8 @@ export async function POST(request: NextRequest) {
 - 合計金額が読み取れないものは除外してください
 - 商品名は店舗が分かりやすい名前に正規化してください
 - レジ袋など食材以外も含めてください（その場合は type: "food" としてください）
-- 取引先名が読み取れない場合は vendor に null を入れてください`,
+- 取引先名が読み取れない場合は vendor に null を入れてください
+- statedTotalが読み取れない場合は null を入れてください`,
             },
           ],
         },
@@ -101,12 +107,14 @@ export async function POST(request: NextRequest) {
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
       vendor: ocrResult.vendor ?? null,
+      statedTotal: ocrResult.statedTotal ?? null,
       items: ocrResult.items.map((item) => ({
         name: item.ingredientName,
         quantity: item.quantity,
         unit: item.unit,
         totalPrice: item.totalPrice,
         type: item.type === 'seasoning' ? 'seasoning' : 'food',
+        needsReview: item.needsReview ?? false,
       })),
     });
   } catch (error) {

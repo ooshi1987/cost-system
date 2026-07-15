@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [ingredientGroups, menuItemCount, menuItemsWithRecipes, tenant, monthlyDeliveryItems, unprocessedSlips] = await Promise.all([
+    const [ingredientGroups, menuItemCount, menuItemsWithRecipes, tenant, monthlyDeliveryItems, unprocessedSlips, salesAgg, expenseAgg, reviewCount] = await Promise.all([
       prisma.ingredient.groupBy({ by: ['type'], where: { storeId }, _count: { id: true } }),
       prisma.menuItem.count({ where: { storeId } }),
       prisma.menuItem.findMany({ where: { storeId }, include: { recipeItems: { include: { ingredient: true } } } }),
@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         select: { totalPrice: true },
       }),
       prisma.deliverySlip.count({ where: { storeId, processedAt: null } }),
+      prisma.transaction.aggregate({ where: { storeId, type: 'sale', date: { gte: monthStart } }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { storeId, type: 'expense', date: { gte: monthStart } }, _sum: { amount: true } }),
+      prisma.transaction.count({ where: { storeId, needsReview: true } }),
     ]);
 
     const foodCount = ingredientGroups.find((g) => g.type === 'food')?._count.id ?? 0;
@@ -59,6 +62,9 @@ export async function GET(request: NextRequest) {
       monthlyPurchaseTotal,
       unprocessedSlips,
       topCostItems,
+      monthSalesTotal: salesAgg._sum.amount ?? 0,
+      monthExpenseTotal: expenseAgg._sum.amount ?? 0,
+      reviewCount,
       trial: {
         isPaid,
         menuLimit: TRIAL_LIMITS.menuItems,

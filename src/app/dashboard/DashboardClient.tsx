@@ -18,6 +18,9 @@ interface Stats {
   monthlyPurchaseTotal: number;
   unprocessedSlips: number;
   topCostItems: TopCostItem[];
+  monthSalesTotal: number;
+  monthExpenseTotal: number;
+  reviewCount: number;
 }
 
 interface Me {
@@ -93,28 +96,134 @@ export default function DashboardClient({ stats, me }: { stats: Stats; me: Me })
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2, fontWeight: 500 }}>
-              ダッシュボード / 本日
+              {me.storeName ? `${me.storeName} ・ 本日` : 'ダッシュボード / 本日'}
             </div>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--ink)', lineHeight: 1.3 }}>
               {greetingWord()}、{displayName}
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{today}</span>
-            <Link
-              href="/delivery"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: 'var(--accent)', color: '#fff',
-                padding: '8px 14px', borderRadius: 'var(--r)',
-                fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              + 伝票を追加
+            <Link href="/review" style={{ position: 'relative', display: 'flex', textDecoration: 'none' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.7 21a2 2 0 01-3.4 0" />
+              </svg>
+              {stats.reviewCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -4,
+                  width: 15, height: 15, borderRadius: '50%',
+                  background: 'var(--accent)', color: '#fff',
+                  fontSize: 9, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {stats.reviewCount}
+                </span>
+              )}
             </Link>
           </div>
         </div>
+
+        {/* ── 今月のざっくり ── */}
+        {(() => {
+          const net = stats.monthSalesTotal - stats.monthExpenseTotal;
+          const expenseRatio = stats.monthSalesTotal > 0
+            ? Math.min(100, (stats.monthExpenseTotal / stats.monthSalesTotal) * 100)
+            : 100;
+          const profitRatio = 100 - expenseRatio;
+          return (
+            <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 16, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 6 }}>
+                今月のざっくり（{new Date().getMonth() + 1}月）
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: net >= 0 ? 'var(--success)' : 'var(--accent)' }}>
+                {net >= 0 ? '+' : '−'}¥{Math.abs(net).toLocaleString('ja-JP')}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                売上 ¥{stats.monthSalesTotal.toLocaleString('ja-JP')} / 支出 ¥{stats.monthExpenseTotal.toLocaleString('ja-JP')}
+              </div>
+              <div style={{ display: 'flex', height: 9, borderRadius: 5, overflow: 'hidden', background: 'var(--line-2)', marginTop: 11 }}>
+                <div style={{ width: `${expenseRatio}%`, background: 'var(--line)' }} />
+                <div style={{ width: `${profitRatio}%`, background: 'var(--success)' }} />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── 要確認バナー ── */}
+        {stats.reviewCount > 0 && (
+          <Link href="/review" style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            background: 'var(--warn-soft)', borderRadius: 13,
+            padding: '11px 13px', marginBottom: 16, textDecoration: 'none',
+          }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 8v5M12 16.5v.5" /><circle cx="12" cy="12" r="9" />
+            </svg>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--warn)' }}>要確認 {stats.reviewCount}件</div>
+              <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 600 }}>タップで修正</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Link>
+        )}
+
+        {/* ── 記録する ── */}
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', margin: '2px 2px 8px' }}>記録する</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24 }}>
+          <Link href="/delivery" style={{
+            gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 11,
+            background: 'var(--accent)', borderRadius: 13, padding: 13,
+            color: '#fff', textDecoration: 'none',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8a2 2 0 012-2h2l1.5-2h7L18 6h1a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <circle cx="12" cy="12.5" r="3.2" />
+            </svg>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>納品書・レシートを撮影</div>
+              <div style={{ fontSize: 10, opacity: 0.85 }}>AIが金額・品目を自動で読み取り</div>
+            </div>
+          </Link>
+
+          <Link href="/sales" style={{
+            background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 13, padding: 12,
+            display: 'flex', flexDirection: 'column', gap: 7, textDecoration: 'none',
+          }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 17l6-6 4 4 7-8" /><path d="M14 7h6v6" />
+            </svg>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>売上を撮影</div>
+            <div style={{ fontSize: 9.5, color: 'var(--muted)', lineHeight: 1.3 }}>AIレジの締め画面</div>
+          </Link>
+
+          <Link href="/petty-cash" style={{
+            background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 13, padding: 12,
+            display: 'flex', flexDirection: 'column', gap: 7, textDecoration: 'none',
+          }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="13" rx="2" /><circle cx="12" cy="12.5" r="2.6" />
+            </svg>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>小口現金</div>
+            <div style={{ fontSize: 9.5, color: 'var(--muted)', lineHeight: 1.3 }}>残高を記入・照合</div>
+          </Link>
+
+          <Link href="/expense" style={{
+            gridColumn: '1 / -1', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 13, padding: 12,
+            display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10, textDecoration: 'none',
+          }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>経費を手入力</div>
+            <div style={{ fontSize: 9.5, color: 'var(--muted)' }}>少額・現金払い</div>
+          </Link>
+        </div>
+
+        {/* ── 経営指標 ── */}
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', margin: '2px 2px 8px' }}>経営指標</div>
 
         {/* ── KPI 上段（3枚） ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>

@@ -79,6 +79,7 @@ model Store {
   settings      Settings[]
   categories    Category[]
   transactions  Transaction[]
+  cashCounts    CashCount[]
 
   @@index([tenantId])
 }
@@ -248,6 +249,22 @@ model Transaction {
   @@index([storeId, date])
   @@index([storeId, type])
   @@index([storeId, needsReview])
+}
+
+// 小口現金の残高照合記録
+model CashCount {
+  id            String   @id @default(cuid())
+  storeId       String
+  countedAt     DateTime @default(now())
+  bookBalance   Float                          // 記帳時点の帳簿残高（計算値のスナップショット）
+  actualBalance Float                          // 実際の残高（入力値）
+  difference    Float                          // actualBalance - bookBalance
+  memo          String?                        // 差異の原因メモ
+
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([storeId, countedAt])
 }
 
 // パスワードリセットトークン
