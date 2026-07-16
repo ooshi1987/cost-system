@@ -148,7 +148,7 @@ export default function Sidebar() {
   const navItems = isSuperAdmin ? SUPER_ADMIN_NAV : NAV_ITEMS;
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar print:hidden">
       {/* ロゴ */}
       <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid var(--line)' }}>
         <Link href={isSuperAdmin ? '/super-admin' : '/dashboard'} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>

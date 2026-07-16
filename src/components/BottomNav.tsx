@@ -26,6 +26,7 @@ export default function BottomNav() {
   return (
     <nav
       data-bottom-nav
+      className="print:hidden"
       style={{
         position: 'fixed',
         bottom: 0,

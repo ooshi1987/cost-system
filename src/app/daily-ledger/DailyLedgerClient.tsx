@@ -5,7 +5,27 @@ import { useRouter } from 'next/navigation';
 import { METHOD_LABELS, type DailyLedger, type DailyLedgerRow } from '@/lib/dailyLedger';
 
 function formatYen(n: number): string {
-  return `¥${Math.round(n).toLocaleString('ja-JP')}`;
+  const rounded = Math.round(n);
+  const sign = rounded < 0 ? '-' : '';
+  return `${sign}¥${Math.abs(rounded).toLocaleString('ja-JP')}`;
+}
+
+// 内訳セル（支払方法/仕入先別）は記帳が無ければ「—」で表示し、未記帳とゼロ円を視覚的に区別する
+function formatCell(n: number): string {
+  return n === 0 ? '—' : formatYen(n);
+}
+
+function formatNet(n: number): string {
+  if (n > 0) return `+${formatYen(n)}`;
+  if (n < 0) return `−${formatYen(Math.abs(n))}`;
+  return formatYen(n);
+}
+
+function netClass(n: number, isTotal?: boolean): string {
+  if (isTotal) return 'text-white';
+  if (n > 0) return 'text-green-600';
+  if (n < 0) return 'text-red-600';
+  return 'text-gray-900';
 }
 
 function monthOptions(currentYear: number, currentMonth: number): { year: number; month: number }[] {
@@ -48,7 +68,7 @@ function buildCsv(ledger: DailyLedger, storeName: string): string {
   const lines = [
     header,
     ...ledger.rows.map((row) => rowToCells(row)),
-    rowToCells(ledger.monthTotal, '月合計'),
+    rowToCells(ledger.monthTotal, `${ledger.month}月度合計`),
   ].map((cells) => cells.map(csvCell).join(','));
 
   return `﻿${[`${storeName} ${ledger.year}年${ledger.month}月 日次集計表`, ...lines].join('\n')}`;
@@ -67,47 +87,47 @@ function downloadCsv(ledger: DailyLedger, storeName: string) {
   URL.revokeObjectURL(url);
 }
 
-const netColor = (n: number) => (n < 0 ? '#dc2626' : n > 0 ? '#16a34a' : 'var(--ink-2)');
-
 function LedgerRow({
   ledger,
   row,
   isTotal,
+  striped,
 }: {
   ledger: DailyLedger;
   row: DailyLedgerRow | Omit<DailyLedgerRow, 'date' | 'day' | 'weekday'>;
   isTotal?: boolean;
+  striped?: boolean;
 }) {
   const day = isTotal ? undefined : (row as DailyLedgerRow).day;
   const weekday = isTotal ? undefined : (row as DailyLedgerRow).weekday;
   const cellClass = isTotal
     ? 'px-3 py-2.5 text-right whitespace-nowrap font-bold text-white'
     : 'px-3 py-2 text-right whitespace-nowrap';
+  const rowClass = isTotal
+    ? 'bg-[var(--ink)] sticky bottom-0 z-10'
+    : `border-b border-gray-100 hover:bg-amber-100/40 ${striped ? 'bg-amber-50/40' : 'bg-white'}`;
   return (
-    <tr className={isTotal ? 'bg-[var(--ink)] sticky bottom-0 z-10' : 'border-b border-gray-100 hover:bg-gray-50'}>
+    <tr className={rowClass}>
       <td className={isTotal ? 'px-3 py-2.5 font-bold text-white whitespace-nowrap' : 'px-3 py-2 whitespace-nowrap text-gray-700'}>
-        {isTotal ? '月合計' : day}
+        {isTotal ? `${ledger.month}月度合計` : day}
       </td>
       <td className={isTotal ? 'px-3 py-2.5 text-white whitespace-nowrap' : 'px-3 py-2 whitespace-nowrap text-gray-400'}>
         {isTotal ? '' : weekday}
       </td>
       {ledger.methodColumns.map((m) => (
-        <td key={m} className={cellClass}>{formatYen(row.salesByMethod[m] ?? 0)}</td>
+        <td key={m} className={cellClass}>{formatCell(row.salesByMethod[m] ?? 0)}</td>
       ))}
       <td className={isTotal ? cellClass + ' font-extrabold' : cellClass + ' font-semibold text-gray-900'}>
         {formatYen(row.salesTotal)}
       </td>
       {ledger.vendorColumns.map((v) => (
-        <td key={v} className={cellClass}>{formatYen(row.expenseByVendor[v] ?? 0)}</td>
+        <td key={v} className={cellClass}>{formatCell(row.expenseByVendor[v] ?? 0)}</td>
       ))}
       <td className={isTotal ? cellClass + ' font-extrabold' : cellClass + ' font-semibold text-gray-900'}>
         {formatYen(row.expenseTotal)}
       </td>
-      <td
-        className={cellClass + ' font-bold'}
-        style={{ color: isTotal ? '#fff' : netColor(row.net) }}
-      >
-        {formatYen(row.net)}
+      <td className={cellClass + ' font-bold ' + netClass(row.net, isTotal)}>
+        {formatNet(row.net)}
       </td>
     </tr>
   );
@@ -128,7 +148,7 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-[1400px] mx-auto p-4 sm:p-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between print:hidden">
           <Link href="/dashboard" className="text-amber-600 hover:text-amber-700 text-sm">← ダッシュボードに戻る</Link>
         </div>
 
@@ -139,7 +159,7 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
               {storeName ? `${storeName}・` : ''}今のExcel（損益計算書）と同じ列構成・表示専用
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 print:hidden">
             <select
               value={`${ledger.year}-${ledger.month}`}
               onChange={(e) => handleMonthChange(e.target.value)}
@@ -157,6 +177,12 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
             >
               CSV出力
             </button>
+            <button
+              onClick={() => window.print()}
+              className="bg-amber-100 hover:bg-amber-200 text-amber-700 text-sm font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+            >
+              PDF出力
+            </button>
           </div>
         </div>
 
@@ -164,8 +190,8 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
           修正はこの画面ではできません。読み間違いや仕分けの修正は、現場の記録画面（撮影・入力）側で行ってください。
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-auto max-h-[75vh]">
+        <div className="bg-white rounded-lg shadow overflow-hidden print:shadow-none">
+          <div className="overflow-auto max-h-[75vh] print:max-h-none print:overflow-visible">
             <table className="text-sm border-collapse">
               <thead className="sticky top-0 z-20">
                 <tr>
@@ -197,8 +223,8 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
                 </tr>
               </thead>
               <tbody>
-                {ledger.rows.map((row) => (
-                  <LedgerRow key={row.date} ledger={ledger} row={row} />
+                {ledger.rows.map((row, i) => (
+                  <LedgerRow key={row.date} ledger={ledger} row={row} striped={i % 2 === 1} />
                 ))}
               </tbody>
               <tfoot>

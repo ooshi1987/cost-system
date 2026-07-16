@@ -1,9 +1,12 @@
 import { prisma } from '@/lib/prisma';
 
-// 経費の取引先/科目のうち月間金額が多い順に採用する件数（残りは「その他」に集約）
-const VENDOR_TOP_N = 5;
+// 経費の取引先のうち月間金額が多い順に採用する件数（残りは「その他」に集約）
+const VENDOR_TOP_N = 3;
 const OTHER_KEY = 'その他';
 const UNCLASSIFIED_KEY = '未分類';
+const SUPPLIES_CATEGORY = '消耗品費';
+const SUPPLIES_KEY = '消耗品';
+const UTILITY_KEY = '水道光熱費';
 
 export const METHOD_LABELS: Record<string, string> = {
   cash: '現金',
@@ -21,7 +24,7 @@ export interface DailyLedgerRow {
   weekday: string; // "水"
   salesByMethod: Record<string, number>;
   salesTotal: number;
-  expenseByVendor: Record<string, number>; // 動的キー（上位N社名）＋ "その他"
+  expenseByVendor: Record<string, number>; // 動的キー（上位N社名）＋ "消耗品"/"水道光熱費"/"その他"
   expenseTotal: number;
   net: number; // salesTotal - expenseTotal
 }
@@ -29,7 +32,7 @@ export interface DailyLedgerRow {
 export interface DailyLedger {
   year: number;
   month: number;
-  vendorColumns: string[]; // 上位N社名（当月分、降順）＋ "その他"
+  vendorColumns: string[]; // 上位N社名（当月分、降順）＋ "消耗品"/"水道光熱費"/"その他"
   methodColumns: string[]; // 実際に使われている入金チャネル
   rows: DailyLedgerRow[];
   monthTotal: Omit<DailyLedgerRow, 'date' | 'day' | 'weekday'>;
@@ -74,17 +77,23 @@ export async function getDailyLedger(storeId: string, year: number, month: numbe
     ? [...orderedUsed, ...unknownUsed]
     : METHOD_ORDER;
 
-  // 取引先/科目ごとの月間合計 → 上位N件を列として採用、残りは「その他」に集約
+  // 「消耗品費」「水道光熱費」は科目マスタに合わせて固定列にする。
+  // 残りの経費（主に仕入）は取引先ごとに集計し、月間金額の上位N社だけを個別列にして残りは「その他」に集約する。
+  function vendorKeyOf(t: (typeof expenseTx)[number]): string {
+    return t.vendor?.trim() || t.category?.name || UNCLASSIFIED_KEY;
+  }
   const vendorTotals = new Map<string, number>();
   for (const t of expenseTx) {
-    const key = t.vendor?.trim() || t.category?.name || UNCLASSIFIED_KEY;
+    const catName = t.category?.name;
+    if (catName === SUPPLIES_CATEGORY || catName === UTILITY_KEY) continue;
+    const key = vendorKeyOf(t);
     vendorTotals.set(key, (vendorTotals.get(key) ?? 0) + t.amount);
   }
   const topVendors = [...vendorTotals.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, VENDOR_TOP_N)
     .map(([name]) => name);
-  const vendorColumns = [...topVendors, OTHER_KEY];
+  const vendorColumns = [...topVendors, SUPPLIES_KEY, UTILITY_KEY, OTHER_KEY];
 
   const rowsMap = new Map<string, DailyLedgerRow>();
   for (let day = 1; day <= daysInMonth; day++) {
@@ -109,8 +118,12 @@ export async function getDailyLedger(storeId: string, year: number, month: numbe
   for (const t of expenseTx) {
     const row = rowsMap.get(dayKey(t.date));
     if (!row) continue;
-    const rawKey = t.vendor?.trim() || t.category?.name || UNCLASSIFIED_KEY;
-    const vendorKey = topVendors.includes(rawKey) ? rawKey : OTHER_KEY;
+    const catName = t.category?.name;
+    const vendorKey =
+      catName === SUPPLIES_CATEGORY ? SUPPLIES_KEY
+      : catName === UTILITY_KEY ? UTILITY_KEY
+      : topVendors.includes(vendorKeyOf(t)) ? vendorKeyOf(t)
+      : OTHER_KEY;
     row.expenseByVendor[vendorKey] += t.amount;
     row.expenseTotal += t.amount;
   }
