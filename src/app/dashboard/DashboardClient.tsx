@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StoreSelector from '@/components/StoreSelector';
+import DesktopAdminPanel from './DesktopAdminPanel';
 
 interface TopCostItem {
   name: string;
@@ -28,6 +29,31 @@ interface Me {
   storeName: string | null;
 }
 
+export interface TrendMonth {
+  label: string;
+  sales: number;
+  purchase: number;
+  expense: number;
+  totalCost: number;
+  profit: number;
+  margin: number;
+}
+
+export interface CategoryItem {
+  name: string;
+  amount: number;
+}
+
+export interface RecentEntry {
+  id: string;
+  date: string;
+  label: string;
+  category: string;
+  method: string;
+  amount: number;
+  type: 'sale' | 'expense' | 'purchase';
+}
+
 function formatYen(n: number): string {
   if (n >= 1_000_000) return `¥${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 10_000) return `¥${Math.round(n / 1_000)}K`;
@@ -45,7 +71,19 @@ function greetingWord(): string {
   return 'こんばんは';
 }
 
-export default function DashboardClient({ stats, me }: { stats: Stats; me: Me }) {
+export default function DashboardClient({
+  stats,
+  me,
+  trend,
+  categoryBreakdown,
+  recentEntries,
+}: {
+  stats: Stats;
+  me: Me;
+  trend: TrendMonth[];
+  categoryBreakdown: CategoryItem[];
+  recentEntries: RecentEntry[];
+}) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -68,6 +106,15 @@ export default function DashboardClient({ stats, me }: { stats: Stats; me: Me })
   return (
     <div style={{ minHeight: '100svh', background: 'var(--bg)', paddingBottom: 80 }}>
       <div className="dashboard-inner">
+
+        <DesktopAdminPanel
+          storeName={me.storeName ?? ''}
+          trend={trend}
+          categoryBreakdown={categoryBreakdown}
+          recentEntries={recentEntries}
+        />
+
+        <div className="md:hidden">
 
         {/* ── ヘッダー ── */}
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -126,9 +173,11 @@ export default function DashboardClient({ stats, me }: { stats: Stats; me: Me })
 
         {/* ── 今月のざっくり ── */}
         {(() => {
-          const net = stats.monthSalesTotal - stats.monthExpenseTotal;
+          // 支出には Transaction 経費に加え、納品書経由の食材仕入も含める（純額を実態に合わせる）
+          const totalExpense = stats.monthlyPurchaseTotal + stats.monthExpenseTotal;
+          const net = stats.monthSalesTotal - totalExpense;
           const expenseRatio = stats.monthSalesTotal > 0
-            ? Math.min(100, (stats.monthExpenseTotal / stats.monthSalesTotal) * 100)
+            ? Math.min(100, (totalExpense / stats.monthSalesTotal) * 100)
             : 100;
           const profitRatio = 100 - expenseRatio;
           return (
@@ -140,7 +189,7 @@ export default function DashboardClient({ stats, me }: { stats: Stats; me: Me })
                 {net >= 0 ? '+' : '−'}¥{Math.abs(net).toLocaleString('ja-JP')}
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-                売上 ¥{stats.monthSalesTotal.toLocaleString('ja-JP')} / 支出 ¥{stats.monthExpenseTotal.toLocaleString('ja-JP')}
+                売上 ¥{stats.monthSalesTotal.toLocaleString('ja-JP')} / 支出 ¥{totalExpense.toLocaleString('ja-JP')}
               </div>
               <div style={{ display: 'flex', height: 9, borderRadius: 5, overflow: 'hidden', background: 'var(--line-2)', marginTop: 11 }}>
                 <div style={{ width: `${expenseRatio}%`, background: 'var(--line)' }} />
@@ -304,6 +353,8 @@ export default function DashboardClient({ stats, me }: { stats: Stats; me: Me })
               レシピを登録するとここに表示されます
             </div>
           )}
+        </div>
+
         </div>
 
       </div>

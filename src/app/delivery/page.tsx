@@ -188,59 +188,63 @@ export default function DeliveryPage() {
   const isReviewing = pageState === 'reviewing' || pageState === 'saving';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto p-4 sm:p-8">
-        <div className="mb-5 flex items-center justify-between">
-          <Link href="/dashboard" className="text-[var(--accent)] hover:text-[var(--accent-h)] text-sm">
-            ← ダッシュボードに戻る
+    <div style={{ minHeight: '100svh', background: 'var(--bg)' }}>
+      <div style={{ maxWidth: 440, margin: '0 auto', padding: '14px 16px 24px' }}>
+        <header style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
+          <Link href="/dashboard" style={{ display: 'flex', color: 'var(--muted)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
           </Link>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+              {isReviewing || pageState === 'saved' ? '納品書の読取結果' : '納品書をスキャン'}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--muted)' }}>
+              {isReviewing ? (vendor.trim() || '取引先未入力') : '納品書・レシートをAIが自動で読み取り'}
+            </div>
+          </div>
           <Link
             href="/help/delivery"
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-[var(--accent)] px-2.5 py-1.5 rounded-lg hover:bg-[var(--accent-soft)] transition-colors border border-gray-200 hover:border-[var(--accent-soft)]"
+            style={{ fontSize: 11, color: 'var(--muted)', padding: '6px 8px', borderRadius: 'var(--r-sm)', textDecoration: 'none' }}
           >
-            <span>？</span>
-            <span>使い方</span>
+            ？使い方
           </Link>
-        </div>
+        </header>
 
-        <h1 className="text-2xl sm:text-3xl font-bold mb-5">納品書をスキャン</h1>
+        {error && (
+          <div style={{ background: 'var(--warn-soft)', color: 'var(--warn)', borderRadius: 10, padding: '10px 12px', fontSize: 13, marginBottom: 12 }}>
+            {error}
+          </div>
+        )}
 
-        {/* ─── 撮影・選択画面 ─── */}
+        {/* ── 撮影 ── */}
         {pageState === 'capture' && (
-          <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
-            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 sm:p-10 text-center">
+          <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 16 }}>
+            <div style={{ border: '2px dashed var(--line)', borderRadius: 13, padding: 24, textAlign: 'center' }}>
               {preview ? (
                 <>
-                  <img src={preview} alt="Preview" className="max-w-full max-h-72 mx-auto mb-4 rounded-lg" />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-[var(--accent)] text-sm font-medium"
-                  >
+                  <img src={preview} alt="Preview" style={{ maxWidth: '100%', maxHeight: 220, margin: '0 auto 12px', borderRadius: 10, display: 'block' }} />
+                  <button onClick={() => fileInputRef.current?.click()} style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 600, background: 'none', border: 'none' }}>
                     別の画像を選ぶ
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="text-5xl mb-4">📸</div>
-                  <p className="text-gray-500 mb-5 text-sm">納品書・レシートを撮影またはアップロード</p>
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📸</div>
+                  <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 16 }}>納品書・レシートを撮影またはアップロード</p>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                     <button
-                      onClick={() => {
-                        fileInputRef.current?.setAttribute('capture', 'environment');
-                        fileInputRef.current?.click();
-                      }}
-                      className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[var(--accent-h)]"
+                      onClick={() => { fileInputRef.current?.setAttribute('capture', 'environment'); fileInputRef.current?.click(); }}
+                      style={{ background: 'var(--accent)', color: '#fff', padding: '11px 18px', borderRadius: 11, fontWeight: 700, fontSize: 13, border: 'none' }}
                     >
-                      📷 カメラで撮影
+                      📷 撮影
                     </button>
                     <button
-                      onClick={() => {
-                        fileInputRef.current?.removeAttribute('capture');
-                        fileInputRef.current?.click();
-                      }}
-                      className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200"
+                      onClick={() => { fileInputRef.current?.removeAttribute('capture'); fileInputRef.current?.click(); }}
+                      style={{ background: 'var(--line-2)', color: 'var(--ink-2)', padding: '11px 18px', borderRadius: 11, fontWeight: 700, fontSize: 13, border: 'none' }}
                     >
-                      🖼️ ファイルを選択
+                      画像を選択
                     </button>
                   </div>
                 </>
@@ -250,84 +254,71 @@ export default function DeliveryPage() {
             {preview && (
               <button
                 onClick={handleOcr}
-                className="mt-4 w-full bg-[var(--accent)] text-white py-3.5 rounded-xl font-bold text-base hover:bg-[var(--accent-h)]"
+                style={{ marginTop: 14, width: '100%', background: 'var(--accent)', color: '#fff', padding: '13px 0', borderRadius: 13, fontWeight: 700, fontSize: 14, border: 'none' }}
               >
                 読み取り開始
               </button>
             )}
 
-            {error && (
-              <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">
-                {error}
-              </div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
           </div>
         )}
 
-        {/* ─── OCR処理中 ─── */}
+        {/* ── 処理中 ── */}
         {pageState === 'processing' && (
-          <div className="bg-white rounded-2xl shadow p-8 text-center">
-            <div className="text-4xl mb-4 animate-spin">⚙️</div>
-            <p className="font-bold text-gray-700 text-lg">読み取り中…</p>
-            <p className="text-sm text-gray-400 mt-1">Claudeが解析しています</p>
+          <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 32, textAlign: 'center' }}>
+            <div style={{ fontSize: 34, marginBottom: 12 }}>⚙️</div>
+            <p style={{ fontWeight: 700, color: 'var(--ink)' }}>読み取り中…</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Claudeが解析しています</p>
           </div>
         )}
 
-        {/* ─── 確認・編集画面 ─── */}
+        {/* ── 確認・編集 ── */}
         {isReviewing && (
-          <div className="bg-white rounded-2xl shadow p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-bold text-gray-700">{editableItems.length}件を読み取りました</p>
-              <p className="text-xs text-gray-400">間違いはタップして修正</p>
-            </div>
-
-            {/* ── 要確認 + 合計照合 ── */}
-            <div className="flex gap-2 mb-4">
-              <div className="flex-1 bg-[var(--warn-soft)] rounded-xl px-3 py-2.5">
-                <div className="text-[10px] font-bold text-[var(--warn)]">要確認</div>
-                <div className="text-base font-bold text-[var(--warn)]">{reviewCount}件</div>
+          <>
+            {/* 要確認 + 合計照合 */}
+            <div style={{ display: 'flex', gap: 7, marginBottom: 11 }}>
+              <div style={{ flex: 1, background: 'var(--warn-soft)', borderRadius: 11, padding: '9px 10px' }}>
+                <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 700 }}>要確認</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--warn)' }}>{reviewCount}件</div>
               </div>
-              <div className={`flex-[1.3] rounded-xl px-3 py-2.5 ${totalDiff === null ? 'bg-gray-50' : totalDiff === 0 ? 'bg-[var(--success-soft)]' : 'bg-[var(--warn-soft)]'}`}>
-                <div className={`text-[10px] font-bold ${totalDiff === null ? 'text-gray-400' : totalDiff === 0 ? 'text-[var(--success)]' : 'text-[var(--warn)]'}`}>合計照合</div>
-                <div className={`text-sm font-bold ${totalDiff === null ? 'text-gray-400' : totalDiff === 0 ? 'text-[var(--success)]' : 'text-[var(--warn)]'}`}>
+              <div style={{ flex: 1.3, background: totalDiff === null || totalDiff === 0 ? 'var(--success-soft)' : 'var(--warn-soft)', borderRadius: 11, padding: '9px 10px' }}>
+                <div style={{ fontSize: 10, color: totalDiff === null || totalDiff === 0 ? 'var(--success)' : 'var(--warn)', fontWeight: 700 }}>合計照合</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: totalDiff === null || totalDiff === 0 ? 'var(--success)' : 'var(--warn)' }}>
                   {totalDiff === null ? '記載金額なし' : totalDiff === 0 ? '✓ 一致' : `差額 ${totalDiff > 0 ? '+' : ''}¥${totalDiff.toLocaleString()}`}
                 </div>
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold mb-1 text-gray-600">取引先名（任意）</label>
-              <input
-                value={vendor}
-                onChange={(e) => setVendor(e.target.value)}
-                placeholder="例：〇〇食品株式会社"
-                disabled={pageState === 'saving'}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
-              />
+            {/* 取引先・記載合計（任意入力） */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <label style={{ flex: 1.2 }}>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>取引先名</div>
+                <input
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
+                  placeholder="〇〇食品株式会社"
+                  disabled={pageState === 'saving'}
+                  style={{ width: '100%', fontSize: 12.5, padding: '8px 9px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--paper)' }}
+                />
+              </label>
+              <label style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>レシート記載合計</div>
+                <input
+                  type="number"
+                  value={statedTotal ?? ''}
+                  onChange={(e) => setStatedTotal(e.target.value === '' ? null : parseFloat(e.target.value))}
+                  placeholder="23300"
+                  disabled={pageState === 'saving'}
+                  style={{ width: '100%', fontSize: 12.5, padding: '8px 9px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--paper)' }}
+                />
+              </label>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold mb-1 text-gray-600">レシート記載合計（任意）</label>
-              <input
-                type="number"
-                value={statedTotal ?? ''}
-                onChange={(e) => setStatedTotal(e.target.value === '' ? null : parseFloat(e.target.value))}
-                placeholder="例：23300"
-                disabled={pageState === 'saving'}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
+            {/* 明細（タップで修正） */}
+            <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 14, padding: 12, marginBottom: 10 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', marginBottom: 9 }}>明細（タップで修正）</div>
 
-            {/* ── スマホ: カード ── */}
-            <div className="sm:hidden space-y-2 mb-5">
               {editableItems.map((item, idx) => {
                 const isEditing = editingIdx === idx;
                 const qty = parseFloat(isEditing ? editDraft!.quantity : item.quantity);
@@ -335,246 +326,195 @@ export default function DeliveryPage() {
                 const unitPrice = qty > 0 ? (price / qty).toFixed(2) : '-';
 
                 if (isEditing && editDraft) {
-                  // ── 編集中カード ──
                   return (
-                    <div key={idx} className="border-2 border-[var(--accent)] rounded-xl p-3 bg-[var(--accent-soft)]">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div key={idx} style={{ border: '2px solid var(--accent)', background: 'var(--accent-soft)', borderRadius: 10, padding: 10, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                         <input
                           value={editDraft.name}
                           onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
                           autoFocus
-                          placeholder="食材名"
-                          className="flex-1 font-bold text-base border-b-2 border-[var(--accent)] focus:border-[var(--accent-h)] focus:outline-none bg-transparent"
+                          placeholder="品目名"
+                          style={{ flex: 1, fontSize: 13, fontWeight: 700, background: 'transparent', border: 'none', borderBottom: '2px solid var(--accent)', outline: 'none' }}
                         />
-                        <button onClick={() => removeItem(idx)} className="text-red-300 hover:text-red-500 text-xl leading-none">×</button>
+                        <button onClick={() => removeItem(idx)} style={{ color: '#e0655a', background: 'none', border: 'none', fontSize: 18, lineHeight: 1 }}>×</button>
                       </div>
-                      {/* 種別トグル（編集中） */}
-                      <div className="flex gap-1 mb-2">
+
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                         <button
                           type="button"
                           onClick={() => setEditDraft({ ...editDraft, type: 'food' })}
-                          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${editDraft.type === 'food' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                          style={{
+                            flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, border: '1px solid',
+                            borderColor: editDraft.type === 'food' ? 'var(--success)' : 'var(--line)',
+                            background: editDraft.type === 'food' ? 'var(--success)' : 'var(--paper)',
+                            color: editDraft.type === 'food' ? '#fff' : 'var(--muted)',
+                          }}
                         >
                           🥦 食材
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditDraft({ ...editDraft, type: 'seasoning' })}
-                          className={`flex-1 py-1.5 rounded-lg text-sm font-semibold border transition-colors ${editDraft.type === 'seasoning' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                          style={{
+                            flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, border: '1px solid',
+                            borderColor: editDraft.type === 'seasoning' ? 'var(--accent-2)' : 'var(--line)',
+                            background: editDraft.type === 'seasoning' ? 'var(--accent-2)' : 'var(--paper)',
+                            color: editDraft.type === 'seasoning' ? '#fff' : 'var(--muted)',
+                          }}
                         >
                           🧂 調味料
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <label className="flex items-center gap-1">
-                          <span className="text-xs text-gray-500">数量</span>
-                          <input type="number" value={editDraft.quantity}
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>数量</span>
+                          <input
+                            type="number"
+                            value={editDraft.quantity}
                             onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
-                            className="w-16 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-[var(--accent)] bg-white" />
+                            style={{ width: 60, fontSize: 12.5, textAlign: 'right', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 8, padding: '6px 7px' }}
+                          />
                         </label>
-                        <label className="flex items-center gap-1">
-                          <span className="text-xs text-gray-500">単位</span>
-                          <input value={editDraft.unit}
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>単位</span>
+                          <input
+                            value={editDraft.unit}
                             onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })}
-                            className="w-14 text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none focus:border-[var(--accent)] bg-white" />
+                            style={{ width: 48, fontSize: 12.5, textAlign: 'center', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 8, padding: '6px 7px' }}
+                          />
                         </label>
-                        <label className="flex items-center gap-1 ml-auto">
-                          <span className="text-xs text-gray-500">¥</span>
-                          <input type="number" value={editDraft.totalPrice}
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>¥</span>
+                          <input
+                            type="number"
+                            value={editDraft.totalPrice}
                             onChange={(e) => setEditDraft({ ...editDraft, totalPrice: e.target.value })}
-                            className="w-24 text-sm border rounded-lg px-2 py-1.5 text-right focus:outline-none focus:border-[var(--accent)] bg-white" />
+                            style={{ width: 80, fontSize: 12.5, textAlign: 'right', background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 8, padding: '6px 7px' }}
+                          />
                         </label>
                       </div>
-                      <div className="text-right text-xs text-gray-400 mb-2">単価 ¥{unitPrice}</div>
-                      <div className="flex gap-2">
-                        <button onClick={saveEdit}
-                          className="flex-1 bg-[var(--accent)] text-white py-1.5 rounded-lg text-sm font-semibold hover:bg-[var(--accent-h)]">
-                          保存
-                        </button>
-                        <button onClick={cancelEdit}
-                          className="px-4 py-1.5 rounded-lg text-sm bg-white border text-gray-500 hover:bg-gray-50">
-                          取消
-                        </button>
+                      <div style={{ textAlign: 'right', fontSize: 10.5, color: 'var(--muted)', marginBottom: 8 }}>単価 ¥{unitPrice}</div>
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={saveEdit} style={{ flex: 1, background: 'var(--accent)', color: '#fff', padding: '7px 0', borderRadius: 8, fontWeight: 700, fontSize: 12, border: 'none' }}>保存</button>
+                        <button onClick={cancelEdit} style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, background: 'var(--paper)', border: '1px solid var(--line)', color: 'var(--muted)' }}>取消</button>
                       </div>
                     </div>
                   );
                 }
 
-                // ── 通常表示カード（タップで編集） ──
                 return (
                   <button
                     key={idx}
                     onClick={() => editingIdx === null && pageState !== 'saving' && startEdit(idx)}
                     disabled={editingIdx !== null || pageState === 'saving'}
-                    className={`w-full text-left rounded-xl px-4 py-3 hover:bg-[var(--accent-soft)] active:bg-[var(--accent-soft)] disabled:opacity-60 disabled:cursor-default transition-colors ${item.needsReview ? 'bg-[var(--warn-soft)]' : 'bg-gray-50'}`}
+                    style={{
+                      width: '100%', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 3,
+                      padding: item.needsReview ? '8px 9px' : '7px 2px', marginBottom: item.needsReview ? 4 : 0,
+                      borderRadius: item.needsReview ? 9 : 0,
+                      background: item.needsReview ? 'var(--warn-soft)' : 'transparent',
+                      border: 'none', borderBottom: item.needsReview ? 'none' : '1px solid var(--line-2)',
+                      cursor: 'pointer',
+                    }}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.type === 'seasoning' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
-                          {item.type === 'seasoning' ? '🧂 調味料' : '🥦 食材'}
-                        </span>
-                        <span className="font-bold text-base">
-                          {item.needsReview && <span className="text-[var(--warn)]">要確認 </span>}
-                          {item.name}
-                        </span>
-                      </div>
-                      <span className="font-bold text-base">¥{parseFloat(item.totalPrice).toLocaleString()}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        fontSize: 9.5, fontWeight: 700, padding: '2px 7px', borderRadius: 999,
+                        background: item.type === 'seasoning' ? 'var(--accent-soft)' : 'var(--success-soft)',
+                        color: item.type === 'seasoning' ? 'var(--accent-2)' : 'var(--success)',
+                      }}>
+                        {item.type === 'seasoning' ? '🧂 調味料' : '🥦 食材'}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: item.needsReview ? 'var(--warn)' : 'var(--ink)' }}>
+                        {item.needsReview && '要確認 '}{item.name}
+                      </span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: item.needsReview ? 'var(--warn)' : 'var(--ink)' }}>
+                        ¥{(parseFloat(item.totalPrice) || 0).toLocaleString()}
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-sm text-gray-500">{item.quantity} {item.unit}</span>
-                      <span className="text-xs text-gray-400">単価 ¥{unitPrice}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: 2 }}>
+                      <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>{item.quantity} {item.unit}</span>
+                      <span style={{ fontSize: 10, color: 'var(--muted)' }}>単価 ¥{unitPrice}</span>
                     </div>
                   </button>
                 );
               })}
-              <div className="flex items-center justify-between pt-2 border-t-2 border-[var(--ink)]">
-                <span className="text-sm font-bold">明細合計</span>
-                <span className="text-base font-bold">¥{itemsTotal.toLocaleString()}</span>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 9, paddingTop: 9, borderTop: '2px solid var(--ink)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700 }}>明細合計</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>¥{itemsTotal.toLocaleString()}</span>
               </div>
             </div>
 
-            {/* ── PC: テーブル ── */}
-            <div className="hidden sm:block border rounded-xl overflow-hidden mb-5">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-3 py-2 text-left w-28">種別</th>
-                    <th className="px-3 py-2 text-left">食材名</th>
-                    <th className="px-3 py-2 text-right w-20">数量</th>
-                    <th className="px-3 py-2 w-16">単位</th>
-                    <th className="px-3 py-2 text-right w-28">合計金額</th>
-                    <th className="px-3 py-2 text-right w-24 text-gray-400">単価</th>
-                    <th className="px-3 py-2 w-16 text-center">修正</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {editableItems.map((item, idx) => {
-                    const isEditing = editingIdx === idx;
-                    const qty = parseFloat(isEditing ? editDraft!.quantity : item.quantity);
-                    const price = parseFloat(isEditing ? editDraft!.totalPrice : item.totalPrice);
-                    const unitPrice = qty > 0 ? (price / qty).toFixed(2) : '-';
-
-                    return (
-                      <tr key={idx} className={isEditing ? 'bg-[var(--accent-soft)]' : item.needsReview ? 'bg-[var(--warn-soft)] hover:bg-[var(--warn-soft)]' : 'hover:bg-gray-50'}>
-                        {/* 種別トグル */}
-                        <td className="px-3 py-2">
-                          {isEditing && editDraft ? (
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                onClick={() => setEditDraft({ ...editDraft, type: 'food' })}
-                                className={`flex-1 px-1.5 py-1 rounded text-xs font-semibold border transition-colors ${editDraft.type === 'food' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
-                              >🥦 食材</button>
-                              <button
-                                type="button"
-                                onClick={() => setEditDraft({ ...editDraft, type: 'seasoning' })}
-                                className={`flex-1 px-1.5 py-1 rounded text-xs font-semibold border transition-colors ${editDraft.type === 'seasoning' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
-                              >🧂 調味料</button>
-                            </div>
-                          ) : (
-                            <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${item.type === 'seasoning' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>
-                              {item.type === 'seasoning' ? '🧂 調味料' : '🥦 食材'}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          {isEditing && editDraft ? (
-                            <input autoFocus value={editDraft.name}
-                              onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
-                              className="w-full border-b border-[var(--accent)] focus:outline-none bg-transparent" />
-                          ) : item.name}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {isEditing && editDraft ? (
-                            <input type="number" value={editDraft.quantity}
-                              onChange={(e) => setEditDraft({ ...editDraft, quantity: e.target.value })}
-                              className="w-16 border-b border-[var(--accent)] focus:outline-none bg-transparent text-right" />
-                          ) : item.quantity}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {isEditing && editDraft ? (
-                            <input value={editDraft.unit}
-                              onChange={(e) => setEditDraft({ ...editDraft, unit: e.target.value })}
-                              className="w-12 border-b border-[var(--accent)] focus:outline-none bg-transparent text-center" />
-                          ) : item.unit}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {isEditing && editDraft ? (
-                            <input type="number" value={editDraft.totalPrice}
-                              onChange={(e) => setEditDraft({ ...editDraft, totalPrice: e.target.value })}
-                              className="w-24 border-b border-[var(--accent)] focus:outline-none bg-transparent text-right" />
-                          ) : `¥${parseFloat(item.totalPrice).toLocaleString()}`}
-                        </td>
-                        <td className="px-3 py-2 text-right text-gray-400 text-xs">¥{unitPrice}</td>
-                        <td className="px-3 py-2 text-center">
-                          {isEditing ? (
-                            <div className="flex gap-1 justify-center">
-                              <button onClick={saveEdit}
-                                className="bg-[var(--accent)] text-white px-2 py-1 rounded text-xs font-semibold hover:bg-[var(--accent-h)]">保存</button>
-                              <button onClick={cancelEdit}
-                                className="bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs hover:bg-gray-300">取消</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => editingIdx === null && startEdit(idx)}
-                              disabled={editingIdx !== null || pageState === 'saving'}
-                              className="text-gray-300 hover:text-[var(--accent)] disabled:opacity-20 p-1">✏️</button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-[var(--ink)]">
-                    <td colSpan={4} className="px-3 py-2 text-right font-bold text-sm">明細合計</td>
-                    <td className="px-3 py-2 text-right font-bold">¥{itemsTotal.toLocaleString()}</td>
-                    <td colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              </table>
+            {/* 合計照合 */}
+            <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 13, padding: '11px 12px', marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
+                <span>レシート記載</span>
+                <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{statedTotal !== null ? `¥${statedTotal.toLocaleString()}` : '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
+                <span>明細合計</span>
+                <span style={{ fontWeight: 700, color: 'var(--ink)' }}>¥{itemsTotal.toLocaleString()}</span>
+              </div>
+              {totalDiff === 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--success)', background: 'var(--success-soft)', borderRadius: 8, padding: '7px 9px' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12l5 5 9-11" />
+                  </svg>
+                  <span>✓ 一致</span>
+                </div>
+              )}
+              {totalDiff !== null && totalDiff !== 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 10.5, color: 'var(--warn)', background: 'var(--warn-soft)', borderRadius: 8, padding: '7px 9px' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M12 8v5M12 16v.5" /><circle cx="12" cy="12" r="9" />
+                  </svg>
+                  <span>差額 {totalDiff > 0 ? '+' : ''}¥{totalDiff.toLocaleString()} — 明細を確認してください</span>
+                </div>
+              )}
             </div>
 
-            {error && (
-              <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">{error}</div>
-            )}
-
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
                 onClick={handleSave}
                 disabled={pageState === 'saving' || editableItems.length === 0 || editingIdx !== null}
-                className="w-full bg-[var(--accent)] text-white py-3.5 rounded-xl font-bold text-base hover:bg-[var(--accent-h)] disabled:bg-gray-300"
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 13, fontWeight: 700, fontSize: 14, border: 'none',
+                  background: pageState === 'saving' || editableItems.length === 0 ? 'var(--line)' : 'var(--accent)', color: '#fff',
+                }}
               >
                 {pageState === 'saving' ? '保存中…' : `✓ ${editableItems.length}件を保存する`}
               </button>
               <button
                 onClick={resetToCapture}
                 disabled={pageState === 'saving'}
-                className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-40"
+                style={{ width: '100%', padding: '11px 0', borderRadius: 13, fontWeight: 600, fontSize: 13, background: 'var(--line-2)', color: 'var(--ink-2)', border: 'none' }}
               >
                 撮り直す
               </button>
             </div>
-          </div>
+          </>
         )}
 
-        {/* ─── 保存完了 ─── */}
+        {/* ── 保存完了 ── */}
         {pageState === 'saved' && (
-          <div className="bg-white rounded-2xl shadow p-6 text-center">
-            <div className="text-5xl mb-4">✅</div>
-            <p className="text-xl font-bold text-gray-800 mb-1">{savedCount}件を保存しました</p>
-            <p className="text-sm text-gray-400 mb-6">食材の単価が更新されました</p>
-            <div className="space-y-2">
+          <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 24, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{savedCount}件を保存しました</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>食材の単価が更新されました</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
                 onClick={resetToCapture}
-                className="w-full bg-[var(--accent)] text-white py-3.5 rounded-xl font-bold hover:bg-[var(--accent-h)]"
+                style={{ width: '100%', background: 'var(--accent)', color: '#fff', padding: '14px 0', borderRadius: 13, fontWeight: 700, fontSize: 14, border: 'none' }}
               >
                 続けてスキャン
               </button>
               <Link
                 href="/dashboard"
-                className="block text-center bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200"
+                style={{ display: 'block', textAlign: 'center', background: 'var(--line-2)', color: 'var(--ink-2)', padding: '12px 0', borderRadius: 13, fontWeight: 600, textDecoration: 'none' }}
               >
-                ダッシュボードへ
+                ホームへ
               </Link>
             </div>
           </div>
