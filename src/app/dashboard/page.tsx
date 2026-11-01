@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
 import { METHOD_LABELS } from '@/lib/dailyLedger';
 import DashboardClient, { type RecentEntry, type TrendMonth, type CategoryItem } from './DashboardClient';
 
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
     }),
     prisma.deliverySlip.findMany({
       where: { storeId, createdAt: { gte: sixMonthsAgoStart } },
-      select: { id: true, vendor: true, createdAt: true, deliveryItems: { select: { totalPrice: true } } },
+      select: { id: true, vendor: true, createdAt: true, ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.deliverySlip.count({ where: { storeId, processedAt: null } }),
@@ -78,7 +79,7 @@ export default async function DashboardPage() {
   //    月次の実際の支出・純利益は「Transaction経費」と「仕入」を合算して算出する。
   const slipTotals = deliverySlips6mo.map((slip) => ({
     ...slip,
-    total: slip.deliveryItems.reduce((sum, item) => sum + item.totalPrice, 0),
+    total: getDeliveryPurchaseTotal(slip),
   }));
 
   const salesByMonth = new Map<string, number>();

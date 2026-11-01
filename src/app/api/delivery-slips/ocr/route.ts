@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { isNonNegativeAmount, isReceiptTaxBasis, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 
 interface OCRResult {
   vendor?: string | null;
   statedTotal?: number | null;
+  externalTax?: number | null;
+  taxBasis?: ReceiptTaxBasis;
   items: Array<{
     ingredientName: string;
     quantity: number;
@@ -58,6 +61,8 @@ export async function POST(request: NextRequest) {
 以下の情報を JSON 形式で抽出してください:
 - 取引先名（発行元の会社名・店舗名。読み取れなければ null）
 - レシート・納品書に記載されている合計金額（statedTotal、円、数値のみ。読み取れなければ null）
+- 明細合計に別途加算する外税の合計（externalTax）。税抜明細に加算する印字された税額のみ。内税は二重加算しないため0。税の扱いが不明ならnull。合計との差額から税額を推測しない。
+- 明細の税区分（taxBasis）: 税抜明細は"exclusive"、税込明細は"inclusive"、混在は"mixed"、不明は"unknown"。
 - 商品名（食材・調味料）
 - 数量（数値のみ）
 - 単位（g / ml / 個 / 本 / 枚 / 袋 / パック / ケース など実際の単位を使用）
@@ -73,6 +78,8 @@ export async function POST(request: NextRequest) {
 {
   "vendor": "〇〇食品株式会社",
   "statedTotal": 23300,
+  "externalTax": null,
+  "taxBasis": "unknown",
   "items": [
     {"ingredientName": "鶏もも肉", "quantity": 1000, "unit": "g", "totalPrice": 1000, "type": "food", "needsReview": false},
     {"ingredientName": "長ネギ", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food", "needsReview": false},
@@ -85,6 +92,10 @@ export async function POST(request: NextRequest) {
 - 商品名は店舗が分かりやすい名前に正規化してください
 - レジ袋など食材以外も含めてください（その場合は type: "food" としてください）
 - 取引先名が読み取れない場合は vendor に null を入れてください
+- statedTotalは税込の支払合計です。預り金・お釣りではありません
+- 明細の金額は原本の印字どおりに保持し、税抜明細に消費税を配分したり、税込明細を推測で税抜に直したりしないでください
+- 消費税を商品明細として追加しないでください
+- 税込明細（inclusive）のexternalTaxは0。印字された内税額はexternalTaxへ入れないでください
 - statedTotalが読み取れない場合は null を入れてください`,
             },
           ],
@@ -92,6 +103,9 @@ export async function POST(request: NextRequest) {
       ],
     });
 
+    if (message.stop_reason === 'max_tokens') {
+      throw new Error('明細が多く読み取り結果が途中で終了しました。伝票を分けて確認してください');
+    }
     const content = message.content[0];
     if (content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
@@ -107,7 +121,9 @@ export async function POST(request: NextRequest) {
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
       vendor: ocrResult.vendor ?? null,
-      statedTotal: ocrResult.statedTotal ?? null,
+      statedTotal: isNonNegativeAmount(ocrResult.statedTotal) ? ocrResult.statedTotal : null,
+      externalTax: isNonNegativeAmount(ocrResult.externalTax) ? ocrResult.externalTax : null,
+      taxBasis: isReceiptTaxBasis(ocrResult.taxBasis) ? ocrResult.taxBasis : 'unknown',
       items: ocrResult.items.map((item) => ({
         name: item.ingredientName,
         quantity: item.quantity,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
+import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,11 +29,11 @@ export async function GET(request: NextRequest) {
     // 月次仕入総額
     const monthlyTotals = await Promise.all(
       months.map(async ({ start, end }) => {
-        const items = await prisma.deliveryItem.findMany({
-          where: { deliverySlip: { storeId, createdAt: { gte: start, lt: end } } },
-          select: { totalPrice: true },
+        const slips = await prisma.deliverySlip.findMany({
+          where: { storeId, createdAt: { gte: start, lt: end } },
+          select: { ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
         });
-        return items.reduce((sum, i) => sum + i.totalPrice, 0);
+        return slips.reduce((sum, slip) => sum + getDeliveryPurchaseTotal(slip), 0);
       })
     );
 

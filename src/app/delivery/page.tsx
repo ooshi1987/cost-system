@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, TAX_BASIS_LABELS, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 
 interface EditableItem {
   name: string;
@@ -21,15 +22,25 @@ export default function DeliveryPage() {
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
   const [vendor, setVendor] = useState('');
   const [statedTotal, setStatedTotal] = useState<number | null>(null);
+  const [externalTax, setExternalTax] = useState<number | null>(null);
+  const [taxBasis, setTaxBasis] = useState<ReceiptTaxBasis>('unknown');
   const [savedCount, setSavedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // タップ編集用
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<EditableItem | null>(null);
 
-  const itemsTotal = editableItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+  const { itemsTotal, calculatedTotal, difference: totalDiff } = calculateReceiptAmounts(
+    editableItems.map((item) => ({ totalPrice: parseFloat(item.totalPrice) || 0 })), statedTotal, externalTax,
+  );
   const reviewCount = editableItems.filter((item) => item.needsReview).length;
-  const totalDiff = statedTotal !== null ? Math.round((statedTotal - itemsTotal) * 100) / 100 : null;
+  const reconciliationReady = totalDiff === 0 && taxBasis !== 'unknown';
+  const canSave = editableItems.length > 0 && editingIdx === null && reviewCount === 0 && reconciliationReady &&
+    !(taxBasis === 'inclusive' && externalTax !== 0) &&
+    isNonNegativeAmount(statedTotal) && isNonNegativeAmount(externalTax) &&
+    editableItems.every((item) => item.name.trim() && item.unit.trim() &&
+      isNonNegativeAmount(parseFloat(item.quantity)) && parseFloat(item.quantity) > 0 &&
+      isNonNegativeAmount(parseFloat(item.totalPrice)));
 
   // ── 画像圧縮 ──
   const compressImage = async (file: File): Promise<Blob> => {
@@ -109,6 +120,8 @@ export default function DeliveryPage() {
       );
       setVendor(data.vendor ?? '');
       setStatedTotal(data.statedTotal ?? null);
+      setExternalTax(isNonNegativeAmount(data.externalTax) ? data.externalTax : null);
+      setTaxBasis(isReceiptTaxBasis(data.taxBasis) ? data.taxBasis : 'unknown');
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setPageState('reviewing');
@@ -120,10 +133,8 @@ export default function DeliveryPage() {
 
   // ── 保存 ──
   const handleSave = async () => {
-    const validItems = editableItems.filter(
-      (item) => item.name.trim() && parseFloat(item.quantity) > 0 && parseFloat(item.totalPrice) >= 0
-    );
-    if (validItems.length === 0) { setError('保存できるアイテムがありません'); return; }
+    if (!canSave) { setError('明細・税区分・外税を確認し、税込合計を一致させてください'); return; }
+    const validItems = editableItems;
     setPageState('saving');
     setError(null);
     try {
@@ -132,6 +143,7 @@ export default function DeliveryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendor: vendor.trim() || null,
+          receipt: { statedTotal, externalTax, taxBasis },
           items: validItems.map((item) => ({
             name: item.name.trim(),
             quantity: parseFloat(item.quantity),
@@ -141,7 +153,10 @@ export default function DeliveryPage() {
           })),
         }),
       });
-      if (!response.ok) throw new Error('保存に失敗しました');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '保存に失敗しました');
+      }
       setSavedCount(validItems.length);
       setPageState('saved');
     } catch (err) {
@@ -178,6 +193,8 @@ export default function DeliveryPage() {
     setEditableItems([]);
     setVendor('');
     setStatedTotal(null);
+    setExternalTax(null);
+    setTaxBasis('unknown');
     setError(null);
     setPageState('capture');
     setEditingIdx(null);
@@ -282,15 +299,15 @@ export default function DeliveryPage() {
                 <div style={{ fontSize: 10, color: 'var(--warn)', fontWeight: 700 }}>要確認</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--warn)' }}>{reviewCount}件</div>
               </div>
-              <div style={{ flex: 1.3, background: totalDiff === null || totalDiff === 0 ? 'var(--success-soft)' : 'var(--warn-soft)', borderRadius: 11, padding: '9px 10px' }}>
-                <div style={{ fontSize: 10, color: totalDiff === null || totalDiff === 0 ? 'var(--success)' : 'var(--warn)', fontWeight: 700 }}>合計照合</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: totalDiff === null || totalDiff === 0 ? 'var(--success)' : 'var(--warn)' }}>
-                  {totalDiff === null ? '記載金額なし' : totalDiff === 0 ? '✓ 一致' : `差額 ${totalDiff > 0 ? '+' : ''}¥${totalDiff.toLocaleString()}`}
+              <div style={{ flex: 1.3, background: reconciliationReady ? 'var(--success-soft)' : 'var(--warn-soft)', borderRadius: 11, padding: '9px 10px' }}>
+                <div style={{ fontSize: 10, color: reconciliationReady ? 'var(--success)' : 'var(--warn)', fontWeight: 700 }}>税込合計照合</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: reconciliationReady ? 'var(--success)' : 'var(--warn)' }}>
+                  {taxBasis === 'unknown' ? '税区分を確認' : totalDiff === null ? '合計・外税を確認' : totalDiff === 0 ? '✓ 一致' : `差額 ${totalDiff > 0 ? '+' : ''}¥${totalDiff.toLocaleString()}`}
                 </div>
               </div>
             </div>
 
-            {/* 取引先・記載合計（任意入力） */}
+            {/* 取引先・税込の記載合計 */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <label style={{ flex: 1.2 }}>
                 <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>取引先名</div>
@@ -303,9 +320,10 @@ export default function DeliveryPage() {
                 />
               </label>
               <label style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>レシート記載合計</div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>レシート記載合計（税込）</div>
                 <input
                   type="number"
+                  min="0"
                   value={statedTotal ?? ''}
                   onChange={(e) => setStatedTotal(e.target.value === '' ? null : parseFloat(e.target.value))}
                   placeholder="23300"
@@ -313,6 +331,23 @@ export default function DeliveryPage() {
                   style={{ width: '100%', fontSize: 12.5, padding: '8px 9px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--paper)' }}
                 />
               </label>
+            </div>
+
+            <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 11, padding: 10, marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <label style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>明細の税区分</div>
+                  <select value={taxBasis} onChange={(e) => setTaxBasis(e.target.value as ReceiptTaxBasis)} disabled={pageState === 'saving'} style={{ width: '100%', padding: 8, border: '1px solid var(--line)', borderRadius: 9, background: 'var(--paper)', fontSize: 12 }}>
+                    {Object.entries(TAX_BASIS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
+                <label style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, marginBottom: 3 }}>別途加算する外税（円）</div>
+                  <input type="number" min="0" value={externalTax ?? ''} onChange={(e) => setExternalTax(e.target.value === '' ? null : Number(e.target.value))} disabled={pageState === 'saving'} placeholder="不明は空欄" style={{ width: '100%', padding: 8, border: '1px solid var(--line)', borderRadius: 9, background: 'var(--paper)', fontSize: 12 }} />
+                </label>
+              </div>
+              <p style={{ fontSize: 10.5, color: 'var(--muted)', lineHeight: 1.6, margin: '7px 0 0' }}>明細金額・単価は原本のまま保存します。税抜明細には外税を加えて合計照合し、税込明細の内税は加算しません。</p>
+              {taxBasis === 'inclusive' && <p style={{ fontSize: 10.5, color: 'var(--warn)', margin: '6px 0 0' }}>この伝票の明細・食材単価は税込です。税抜への自動換算は行いません。外税欄は0円にしてください。</p>}
             </div>
 
             {/* 明細（タップで修正） */}
@@ -450,14 +485,23 @@ export default function DeliveryPage() {
             {/* 合計照合 */}
             <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 13, padding: '11px 12px', marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
-                <span>レシート記載</span>
-                <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{statedTotal !== null ? `¥${statedTotal.toLocaleString()}` : '—'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
-                <span>明細合計</span>
+                <span>明細合計（{TAX_BASIS_LABELS[taxBasis]}）</span>
                 <span style={{ fontWeight: 700, color: 'var(--ink)' }}>¥{itemsTotal.toLocaleString()}</span>
               </div>
-              {totalDiff === 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
+                <span>別途加算する外税</span>
+                <span>{externalTax !== null ? `¥${externalTax.toLocaleString()}` : '未確認'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, padding: '2px 0' }}>
+                <span>計算した税込合計</span>
+                <span>{calculatedTotal !== null ? `¥${calculatedTotal.toLocaleString()}` : '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)', padding: '2px 0' }}>
+                <span>レシート記載合計（税込）</span>
+                <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{statedTotal !== null ? `¥${statedTotal.toLocaleString()}` : '—'}</span>
+              </div>
+              {totalDiff === null && <p style={{ fontSize: 10.5, color: 'var(--warn)' }}>税込合計と外税を原本で確認してください。内税のみの伝票は外税0円です。</p>}
+              {reconciliationReady && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 11, fontWeight: 700, color: 'var(--success)', background: 'var(--success-soft)', borderRadius: 8, padding: '7px 9px' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12l5 5 9-11" />
@@ -476,12 +520,13 @@ export default function DeliveryPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {!canSave && <p style={{ fontSize: 11, color: 'var(--warn)', margin: 0 }}>保存前に、要確認の明細・税区分・外税・税込合計を確認してください。</p>}
               <button
                 onClick={handleSave}
-                disabled={pageState === 'saving' || editableItems.length === 0 || editingIdx !== null}
+                disabled={pageState === 'saving' || !canSave}
                 style={{
                   width: '100%', padding: '13px 0', borderRadius: 13, fontWeight: 700, fontSize: 14, border: 'none',
-                  background: pageState === 'saving' || editableItems.length === 0 ? 'var(--line)' : 'var(--accent)', color: '#fff',
+                  background: pageState === 'saving' || !canSave ? 'var(--line)' : 'var(--accent)', color: '#fff',
                 }}
               >
                 {pageState === 'saving' ? '保存中…' : `✓ ${editableItems.length}件を保存する`}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth, TRIAL_LIMITS, isPaidPlan } from '@/lib/auth';
+import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,9 +18,9 @@ export async function GET(request: NextRequest) {
       prisma.menuItem.count({ where: { storeId } }),
       prisma.menuItem.findMany({ where: { storeId }, include: { recipeItems: { include: { ingredient: true } } } }),
       prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { subscriptionStatus: true } }),
-      prisma.deliveryItem.findMany({
-        where: { deliverySlip: { storeId, createdAt: { gte: monthStart } } },
-        select: { totalPrice: true },
+      prisma.deliverySlip.findMany({
+        where: { storeId, createdAt: { gte: monthStart } },
+        select: { ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
       }),
       prisma.deliverySlip.count({ where: { storeId, processedAt: null } }),
       prisma.transaction.aggregate({ where: { storeId, type: 'sale', date: { gte: monthStart } }, _sum: { amount: true } }),
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     const recipeCount = menuItemsWithRecipes.filter((item) => item.recipeItems.length > 0).length;
-    const monthlyPurchaseTotal = monthlyDeliveryItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const monthlyPurchaseTotal = monthlyDeliveryItems.reduce((sum, slip) => sum + getDeliveryPurchaseTotal(slip), 0);
 
     const isPaid = isPaidPlan(tenant?.subscriptionStatus);
     return NextResponse.json({

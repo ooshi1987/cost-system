@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { calculateReceiptAmounts, readReceiptMetadata, TAX_BASIS_LABELS } from '@/lib/deliveryAmounts';
 
 interface DeliveryItem {
   id: string;
@@ -15,6 +16,8 @@ interface DeliveryItem {
 
 interface DeliverySlip {
   id: string;
+  vendor: string | null;
+  ocrRawData: string | null;
   createdAt: string;
   processedAt: string | null;
   deliveryItems: DeliveryItem[];
@@ -149,13 +152,17 @@ export default function DeliveryHistoryPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {deliverySlips.map((slip) => (
+            {deliverySlips.map((slip) => {
+              const receipt = readReceiptMetadata(slip.ocrRawData);
+              const amounts = calculateReceiptAmounts(slip.deliveryItems, receipt?.statedTotal ?? null, receipt?.externalTax ?? null);
+              return (
               <div key={slip.id} className="bg-white rounded-lg shadow p-4 sm:p-6">
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold">
                       {new Date(slip.createdAt).toLocaleString('ja-JP')}
                     </h2>
+                    {slip.vendor && <p className="text-sm font-semibold">{slip.vendor}</p>}
                     {slip.processedAt && (
                       <p className="text-sm text-gray-600">
                         処理済み: {new Date(slip.processedAt).toLocaleString('ja-JP')}
@@ -163,6 +170,18 @@ export default function DeliveryHistoryPage() {
                     )}
                   </div>
                   <div className="text-xs text-gray-400">#{slip.id.slice(0, 8)}</div>
+                </div>
+
+                <div className="mb-4 rounded-lg border border-gray-200 p-3 text-sm">
+                  <div className="flex justify-between gap-3"><span>明細合計{receipt ? `（${TAX_BASIS_LABELS[receipt.taxBasis]}）` : ''}</span><span>¥{amounts.itemsTotal.toLocaleString()}</span></div>
+                  {receipt ? <>
+                    <div className="flex justify-between gap-3"><span>別途加算する外税</span><span>¥{receipt.externalTax.toLocaleString()}</span></div>
+                    <div className="flex justify-between gap-3 font-bold"><span>伝票記載合計（税込）</span><span>¥{receipt.statedTotal.toLocaleString()}</span></div>
+                    <p className={amounts.difference === 0 ? 'mt-2 text-green-700' : 'mt-2 text-amber-700'}>
+                      {amounts.difference === 0 ? '✓ 明細合計＋外税と一致' : `差額 ¥${amounts.difference?.toLocaleString()} — 明細と原本を確認してください`}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">食材単価は明細金額で計算。仕入集計には税込の伝票合計を使用します。</p>
+                  </> : <p className="mt-2 text-xs text-amber-700">過去形式の記録：税込合計・税額は未記録です。仕入集計には登録済みの明細合計を使用しています。</p>}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -268,7 +287,8 @@ export default function DeliveryHistoryPage() {
                   </p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

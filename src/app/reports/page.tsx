@@ -97,6 +97,7 @@ export default function ReportsPage() {
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 24 }}>
                 月次仕入総額（過去6ヶ月）
               </div>
+              <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.6 }}>税込の伝票合計を集計します。税込合計が未記録の過去分は、登録済みの明細合計を使用します。メニュー原価は食材単価から計算します。</p>
 
               {loading ? (
                 <div style={{ height: 180, background: 'var(--line-2)', borderRadius: 'var(--r)', animation: 'pulse 1.5s ease infinite' }} />
