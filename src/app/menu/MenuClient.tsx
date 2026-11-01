@@ -5,8 +5,17 @@ import Link from 'next/link';
 import UpgradeModal from '@/components/UpgradeModal';
 
 interface RecipeIngredient {
+  id: string;
+  name: string;
+  unit: string;
   costPerUnit: number;
   priceSource: string;
+}
+
+function ingredientBadge(ing: RecipeIngredient): { text: string; cls: string } {
+  if (ing.priceSource === 'delivery') return { text: `仕入連動・¥${ing.costPerUnit.toFixed(2)}/${ing.unit}`, cls: 'bg-green-50 text-green-700' };
+  if (ing.priceSource === 'manual') return { text: `手入力単価・¥${ing.costPerUnit.toFixed(2)}/${ing.unit}`, cls: 'bg-gray-100 text-gray-600' };
+  return { text: '⚠ 単価未連動', cls: 'bg-amber-100 text-amber-700' };
 }
 
 interface MenuItem {
@@ -46,6 +55,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
   const [formData, setFormData] = useState({ name: '', sellingPrice: '', category: '' });
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -261,7 +271,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
           <Link href="/dashboard" className="text-amber-600 hover:text-amber-700">← ダッシュボードに戻る</Link>
           <Link href="/help/menu" className="flex items-center gap-1 text-xs text-gray-400 hover:text-amber-600 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 transition-colors border border-gray-200 hover:border-amber-200"><span>？</span><span>使い方</span></Link>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">メニュー管理</h1>
+        <h1 className="text-2xl sm:text-4xl font-bold mb-6 sm:mb-8">メニュー・レシピ</h1>
 
         {/* 原価表 撮影で一括取込 */}
         <Link
@@ -369,6 +379,9 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
             </div>
             {menuItems.length > 0 && !reorderMode && <button onClick={enterReorderMode} className="text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-400 transition font-medium">編集</button>}
           </div>
+          {!reorderMode && menuItems.length > 0 && (
+            <p className="text-xs text-gray-400 mb-3">タップすると材料・原価率がその場で開きます</p>
+          )}
 
           {menuItems.length === 0 ? (
             <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
@@ -466,24 +479,55 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                           unlinkedCount > 0 ? 'bg-amber-100 text-amber-700' :
                           costRate <= targetCostRate ? 'bg-green-100 text-green-700' :
                           'bg-orange-100 text-orange-700';
+                        const isOpen = openId === item.id;
                         return (
-                          <div key={item.id} className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition group">
-                            <Link href={`/menu/${item.id}/recipe`} className="flex-1 min-w-0 flex items-center gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{item.name}</div>
-                                <div className="text-xs text-gray-400 mt-0.5">
-                                  ¥{item.sellingPrice.toLocaleString()}
-                                  {item.recipeItems.length > 0 && (
-                                    <> · 材料費 ¥{totalCost.toFixed(0)}{unlinkedCount > 0 && <> · <span className="text-amber-500">未連動{unlinkedCount}件</span></>}</>
-                                  )}
+                          <div key={item.id}>
+                            <div className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 transition group">
+                              <button onClick={() => setOpenId(isOpen ? null : item.id)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{item.name}</div>
+                                  <div className="text-xs text-gray-400 mt-0.5">
+                                    ¥{item.sellingPrice.toLocaleString()}
+                                    {item.recipeItems.length > 0 && (
+                                      <> · 材料費 ¥{totalCost.toFixed(0)}{unlinkedCount > 0 && <> · <span className="text-amber-500">未連動{unlinkedCount}件</span></>}</>
+                                    )}
+                                  </div>
                                 </div>
+                                <div className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}>
+                                  {costRate !== null ? `${costRate.toFixed(1)}%${unlinkedCount > 0 ? '※' : ''}` : 'レシピ未登録'}
+                                </div>
+                                <span className="text-gray-300 shrink-0 text-xs">{isOpen ? '▲' : '▼'}</span>
+                              </button>
+                              <button onClick={() => startEdit(item)} disabled={editingId !== null} className="text-gray-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">✏️</button>
+                              <button onClick={() => deleteItem(item.id)} disabled={editingId !== null} className="text-gray-300 hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">🗑️</button>
+                            </div>
+
+                            {isOpen && (
+                              <div className="px-4 pb-4 bg-gray-50/60">
+                                {item.recipeItems.length === 0 ? (
+                                  <p className="text-xs text-gray-400 py-2">材料がまだ登録されていません。</p>
+                                ) : (
+                                  <div className="space-y-1.5 pt-1">
+                                    {item.recipeItems.map((ri) => {
+                                      const badge = ingredientBadge(ri.ingredient);
+                                      const lineCost = ri.ingredient.costPerUnit * ri.quantity;
+                                      return (
+                                        <div key={ri.id} className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2 text-xs">
+                                          <div className="min-w-0">
+                                            <div className="font-medium truncate">{ri.ingredient.name} <span className="text-gray-400 font-normal">{ri.quantity}{ri.ingredient.unit}</span></div>
+                                            <div className={`mt-1 inline-block px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.text}</div>
+                                          </div>
+                                          <div className="font-semibold text-gray-700 shrink-0 ml-2">¥{lineCost.toFixed(0)}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <Link href={`/menu/${item.id}/recipe`} className="mt-2 inline-block text-xs text-amber-600 hover:underline">
+                                  材料を編集する →
+                                </Link>
                               </div>
-                              <div className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}>
-                                {costRate !== null ? `${costRate.toFixed(1)}%${unlinkedCount > 0 ? '※' : ''}` : 'レシピ未登録'}
-                              </div>
-                            </Link>
-                            <button onClick={() => startEdit(item)} disabled={editingId !== null} className="text-gray-300 hover:text-amber-500 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">✏️</button>
-                            <button onClick={() => deleteItem(item.id)} disabled={editingId !== null} className="text-gray-300 hover:text-red-400 disabled:opacity-20 disabled:cursor-not-allowed p-1 shrink-0 transition-colors opacity-0 group-hover:opacity-100">🗑️</button>
+                            )}
                           </div>
                         );
                       })}

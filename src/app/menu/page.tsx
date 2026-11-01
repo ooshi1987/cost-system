@@ -39,6 +39,9 @@ export default async function MenuPage() {
       id: r.id,
       quantity: r.quantity,
       ingredient: {
+        id: r.ingredient.id,
+        name: r.ingredient.name,
+        unit: r.ingredient.unit,
         costPerUnit: r.ingredient.costPerUnit,
         priceSource: r.ingredient.priceSource,
       },
