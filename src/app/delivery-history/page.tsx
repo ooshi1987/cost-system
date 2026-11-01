@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { calculateReceiptAmounts, readReceiptMetadata, TAX_BASIS_LABELS } from '@/lib/deliveryAmounts';
+import { calculateReceiptAmounts, readReceiptMetadata, getDeliveryDocumentDate, TAX_BASIS_LABELS } from '@/lib/deliveryAmounts';
 
 interface DeliveryItem {
   id: string;
@@ -160,12 +160,14 @@ export default function DeliveryHistoryPage() {
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold">
-                      {new Date(slip.createdAt).toLocaleString('ja-JP')}
+                      {getDeliveryDocumentDate(slip).replaceAll('-', '/')} {receipt?.documentDate ? 'の伝票' : '登録分'}
                     </h2>
+                    {!receipt?.documentDate && <p className="text-xs text-amber-700">伝票日未記録：登録日（日本時間）の月に集計</p>}
+                    <p className="text-xs text-gray-500">登録日時: {new Date(slip.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                     {slip.vendor && <p className="text-sm font-semibold">{slip.vendor}</p>}
                     {slip.processedAt && (
                       <p className="text-sm text-gray-600">
-                        処理済み: {new Date(slip.processedAt).toLocaleString('ja-JP')}
+                        処理済み: {new Date(slip.processedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
                       </p>
                     )}
                   </div>

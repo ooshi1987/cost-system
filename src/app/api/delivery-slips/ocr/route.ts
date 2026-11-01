@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { isNonNegativeAmount, isReceiptTaxBasis, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
+import { isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 
 interface OCRResult {
+  documentDate?: string | null;
   vendor?: string | null;
   statedTotal?: number | null;
   externalTax?: number | null;
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
               text: `これは納品書またはレシートの画像です。
 以下の情報を JSON 形式で抽出してください:
 - 取引先名（発行元の会社名・店舗名。読み取れなければ null）
+- 伝票に印字された取引日（documentDate、YYYY-MM-DD形式。和暦は西暦に変換。読めない・複数候補で不明な場合はnull。今日の日付や支払期日で補わない）
 - レシート・納品書に記載されている合計金額（statedTotal、円、数値のみ。読み取れなければ null）
 - 明細合計に別途加算する外税の合計（externalTax）。税抜明細に加算する印字された税額のみ。内税は二重加算しないため0。税の扱いが不明ならnull。合計との差額から税額を推測しない。
 - 明細の税区分（taxBasis）: 税抜明細は"exclusive"、税込明細は"inclusive"、混在は"mixed"、不明は"unknown"。
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
 レスポンス形式（JSON のみ返してください）:
 {
   "vendor": "〇〇食品株式会社",
+  "documentDate": null,
   "statedTotal": 23300,
   "externalTax": null,
   "taxBasis": "unknown",
@@ -121,6 +124,7 @@ export async function POST(request: NextRequest) {
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
       vendor: ocrResult.vendor ?? null,
+      documentDate: isDocumentDate(ocrResult.documentDate) ? ocrResult.documentDate : null,
       statedTotal: isNonNegativeAmount(ocrResult.statedTotal) ? ocrResult.statedTotal : null,
       externalTax: isNonNegativeAmount(ocrResult.externalTax) ? ocrResult.externalTax : null,
       taxBasis: isReceiptTaxBasis(ocrResult.taxBasis) ? ocrResult.taxBasis : 'unknown',

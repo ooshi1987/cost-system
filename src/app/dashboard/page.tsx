@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
+import { getDeliveryPurchaseTotal, getDeliveryDocumentDate, getJapanMonthWindows, japanDateKey } from '@/lib/deliveryAmounts';
 import { METHOD_LABELS } from '@/lib/dailyLedger';
 import DashboardClient, { type RecentEntry, type TrendMonth, type CategoryItem } from './DashboardClient';
 
 function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}`;
+  return japanDateKey(d).slice(0, 7);
 }
 
 export default async function DashboardPage() {
@@ -15,21 +15,16 @@ export default async function DashboardPage() {
 
   const storeId = auth.storeId;
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const sixMonthsAgoStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-
-  const monthWindows: { label: string; start: Date }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthWindows.push({ label: `${start.getMonth() + 1}月`, start });
-  }
+  const monthWindows = getJapanMonthWindows(now);
+  const monthStart = monthWindows[monthWindows.length - 1].start;
+  const sixMonthsAgoStart = monthWindows[0].start;
 
   const [
     ingredientGroups,
     menuItemCount,
     menuItemsWithRecipes,
     transactions6mo,
-    deliverySlips6mo,
+    deliverySlips,
     unprocessedSlips,
     user,
     store,
@@ -44,7 +39,7 @@ export default async function DashboardPage() {
       orderBy: { date: 'desc' },
     }),
     prisma.deliverySlip.findMany({
-      where: { storeId, createdAt: { gte: sixMonthsAgoStart } },
+      where: { storeId },
       select: { id: true, vendor: true, createdAt: true, ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
       orderBy: { createdAt: 'desc' },
     }),
@@ -77,10 +72,13 @@ export default async function DashboardPage() {
 
   // ── 仕入(食材原価)は DeliverySlip 経由のため Transaction には現れない。
   //    月次の実際の支出・純利益は「Transaction経費」と「仕入」を合算して算出する。
-  const slipTotals = deliverySlips6mo.map((slip) => ({
+  const slipTotals = deliverySlips.map((slip) => ({
     ...slip,
+    documentDate: getDeliveryDocumentDate(slip),
     total: getDeliveryPurchaseTotal(slip),
-  }));
+  })).filter((slip) => slip.documentDate.slice(0, 7) >= monthWindows[0].key &&
+    slip.documentDate.slice(0, 7) <= monthWindows[monthWindows.length - 1].key)
+    .sort((a, b) => b.documentDate.localeCompare(a.documentDate) || b.createdAt.getTime() - a.createdAt.getTime());
 
   const salesByMonth = new Map<string, number>();
   const expenseByMonth = new Map<string, number>();
@@ -91,7 +89,7 @@ export default async function DashboardPage() {
   }
   const purchaseByMonth = new Map<string, number>();
   for (const slip of slipTotals) {
-    const key = monthKey(new Date(slip.createdAt));
+    const key = slip.documentDate.slice(0, 7);
     purchaseByMonth.set(key, (purchaseByMonth.get(key) ?? 0) + slip.total);
   }
 
@@ -139,7 +137,7 @@ export default async function DashboardPage() {
     .slice(0, 40)
     .map((slip) => ({
       id: slip.id,
-      date: new Date(slip.createdAt).toISOString(),
+      date: new Date(`${slip.documentDate}T00:00:00+09:00`).toISOString(),
       label: slip.vendor?.trim() || '仕入',
       category: '食材仕入',
       method: '—',

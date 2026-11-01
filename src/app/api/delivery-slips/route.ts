@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
-import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, type ReceiptMetadata } from '@/lib/deliveryAmounts';
+import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptMetadata } from '@/lib/deliveryAmounts';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (receipt !== undefined) {
+      if (receipt && receipt.documentDate !== undefined && !isDocumentDate(receipt.documentDate)) {
+        return NextResponse.json({ error: '伝票の日付を正しい年月日で指定してください' }, { status: 400 });
+      }
       if (!receipt || !isNonNegativeAmount(receipt.statedTotal) || !isNonNegativeAmount(receipt.externalTax) ||
         !isReceiptTaxBasis(receipt.taxBasis) || receipt.taxBasis === 'unknown' ||
         (receipt.taxBasis === 'inclusive' && receipt.externalTax !== 0)) {

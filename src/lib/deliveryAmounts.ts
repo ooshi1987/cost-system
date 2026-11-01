@@ -5,6 +5,34 @@ export interface ReceiptMetadata {
   statedTotal: number;
   externalTax: number;
   taxBasis: ReceiptTaxBasis;
+  documentDate?: string;
+}
+
+export function isDocumentDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+// 店舗の暦日は日本時間で統一。サーバー・端末のタイムゾーンに依存させない。
+export function japanDateKey(value: Date | string = new Date()): string {
+  return new Date(new Date(value).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+export function getJapanMonthWindows(now = new Date(), count = 6) {
+  const today = japanDateKey(now);
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  return Array.from({ length: count }, (_, i) => {
+    const day = new Date(Date.UTC(year, month - count + i, 1)).toISOString().slice(0, 10);
+    const next = new Date(Date.UTC(Number(day.slice(0, 4)), Number(day.slice(5, 7)), 1)).toISOString().slice(0, 10);
+    return {
+      key: day.slice(0, 7),
+      label: `${Number(day.slice(5, 7))}月`,
+      start: new Date(`${day}T00:00:00+09:00`),
+      end: new Date(`${next}T00:00:00+09:00`),
+    };
+  });
 }
 
 export const TAX_BASIS_LABELS: Record<ReceiptTaxBasis, string> = {
@@ -40,12 +68,17 @@ export function readReceiptMetadata(rawData: string | null | undefined): Receipt
     const data = JSON.parse(rawData);
     // 旧形式（明細配列）はそのまま利用し、過去の税額・税込合計は推測しない。
     if (!data || data.version !== 2 || !data.receipt) return null;
-    const { statedTotal, externalTax, taxBasis } = data.receipt;
+    const { statedTotal, externalTax, taxBasis, documentDate } = data.receipt;
     if (!isNonNegativeAmount(statedTotal) || !isNonNegativeAmount(externalTax) || !isReceiptTaxBasis(taxBasis)) return null;
-    return { statedTotal, externalTax, taxBasis };
+    return { statedTotal, externalTax, taxBasis, ...(isDocumentDate(documentDate) ? { documentDate } : {}) };
   } catch {
     return null;
   }
+}
+
+export function getDeliveryDocumentDate(slip: { ocrRawData?: string | null; createdAt: Date | string }): string {
+  // 未記録の過去分は登録日の日本時間で扱い、原本の日付を推測しない。
+  return readReceiptMetadata(slip.ocrRawData)?.documentDate ?? japanDateKey(slip.createdAt);
 }
 
 export function getDeliveryPurchaseTotal(slip: {

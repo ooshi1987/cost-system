@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth, TRIAL_LIMITS, isPaidPlan } from '@/lib/auth';
-import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
+import { getDeliveryPurchaseTotal, getDeliveryDocumentDate, getJapanMonthWindows } from '@/lib/deliveryAmounts';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,16 +11,17 @@ export async function GET(request: NextRequest) {
     const storeId = auth.storeId;
 
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonth = getJapanMonthWindows(now, 1)[0];
+    const monthStart = currentMonth.start;
 
-    const [ingredientGroups, menuItemCount, menuItemsWithRecipes, tenant, monthlyDeliveryItems, unprocessedSlips, salesAgg, expenseAgg, reviewCount] = await Promise.all([
+    const [ingredientGroups, menuItemCount, menuItemsWithRecipes, tenant, deliverySlips, unprocessedSlips, salesAgg, expenseAgg, reviewCount] = await Promise.all([
       prisma.ingredient.groupBy({ by: ['type'], where: { storeId }, _count: { id: true } }),
       prisma.menuItem.count({ where: { storeId } }),
       prisma.menuItem.findMany({ where: { storeId }, include: { recipeItems: { include: { ingredient: true } } } }),
       prisma.tenant.findUnique({ where: { id: auth.tenantId }, select: { subscriptionStatus: true } }),
       prisma.deliverySlip.findMany({
-        where: { storeId, createdAt: { gte: monthStart } },
-        select: { ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
+        where: { storeId },
+        select: { createdAt: true, ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
       }),
       prisma.deliverySlip.count({ where: { storeId, processedAt: null } }),
       prisma.transaction.aggregate({ where: { storeId, type: 'sale', date: { gte: monthStart } }, _sum: { amount: true } }),
@@ -51,7 +52,9 @@ export async function GET(request: NextRequest) {
     }
 
     const recipeCount = menuItemsWithRecipes.filter((item) => item.recipeItems.length > 0).length;
-    const monthlyPurchaseTotal = monthlyDeliveryItems.reduce((sum, slip) => sum + getDeliveryPurchaseTotal(slip), 0);
+    const monthlyPurchaseTotal = deliverySlips
+      .filter((slip) => getDeliveryDocumentDate(slip).slice(0, 7) === currentMonth.key)
+      .reduce((sum, slip) => sum + getDeliveryPurchaseTotal(slip), 0);
 
     const isPaid = isPaidPlan(tenant?.subscriptionStatus);
     return NextResponse.json({

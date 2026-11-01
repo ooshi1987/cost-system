@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, TAX_BASIS_LABELS, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
+import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, TAX_BASIS_LABELS, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 
 interface EditableItem {
   name: string;
@@ -29,13 +29,14 @@ export default function DeliveryPage() {
   // タップ編集用
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<EditableItem | null>(null);
+  const [documentDate, setDocumentDate] = useState('');
 
   const { itemsTotal, calculatedTotal, difference: totalDiff } = calculateReceiptAmounts(
     editableItems.map((item) => ({ totalPrice: parseFloat(item.totalPrice) || 0 })), statedTotal, externalTax,
   );
   const reviewCount = editableItems.filter((item) => item.needsReview).length;
   const reconciliationReady = totalDiff === 0 && taxBasis !== 'unknown';
-  const canSave = editableItems.length > 0 && editingIdx === null && reviewCount === 0 && reconciliationReady &&
+  const canSave = isDocumentDate(documentDate) && editableItems.length > 0 && editingIdx === null && reviewCount === 0 && reconciliationReady &&
     !(taxBasis === 'inclusive' && externalTax !== 0) &&
     isNonNegativeAmount(statedTotal) && isNonNegativeAmount(externalTax) &&
     editableItems.every((item) => item.name.trim() && item.unit.trim() &&
@@ -119,6 +120,7 @@ export default function DeliveryPage() {
         }))
       );
       setVendor(data.vendor ?? '');
+      setDocumentDate(isDocumentDate(data.documentDate) ? data.documentDate : '');
       setStatedTotal(data.statedTotal ?? null);
       setExternalTax(isNonNegativeAmount(data.externalTax) ? data.externalTax : null);
       setTaxBasis(isReceiptTaxBasis(data.taxBasis) ? data.taxBasis : 'unknown');
@@ -133,7 +135,7 @@ export default function DeliveryPage() {
 
   // ── 保存 ──
   const handleSave = async () => {
-    if (!canSave) { setError('明細・税区分・外税を確認し、税込合計を一致させてください'); return; }
+    if (!canSave) { setError('伝票の日付・明細・税区分・外税を確認し、税込合計を一致させてください'); return; }
     const validItems = editableItems;
     setPageState('saving');
     setError(null);
@@ -143,7 +145,7 @@ export default function DeliveryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendor: vendor.trim() || null,
-          receipt: { statedTotal, externalTax, taxBasis },
+          receipt: { statedTotal, externalTax, taxBasis, documentDate },
           items: validItems.map((item) => ({
             name: item.name.trim(),
             quantity: parseFloat(item.quantity),
@@ -192,6 +194,7 @@ export default function DeliveryPage() {
     setPreview(null);
     setEditableItems([]);
     setVendor('');
+    setDocumentDate('');
     setStatedTotal(null);
     setExternalTax(null);
     setTaxBasis('unknown');
@@ -306,6 +309,13 @@ export default function DeliveryPage() {
                 </div>
               </div>
             </div>
+
+            <label style={{ display: 'block', marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, marginBottom: 4 }}>伝票の日付（仕入の集計日）</div>
+              <input type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} disabled={pageState === 'saving'} required style={{ width: '100%', minWidth: 0, fontSize: 14, padding: '9px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--paper)' }} />
+              <p style={{ fontSize: 10.5, color: 'var(--muted)', lineHeight: 1.6, marginTop: 4 }}>原本の日付を確認してください。この日付の月に集計します。登録日時は別に残ります。</p>
+              {!isDocumentDate(documentDate) && <p style={{ fontSize: 11, color: 'var(--warn)', marginTop: 4 }}>原本を見て日付を入力してください。</p>}
+            </label>
 
             {/* 取引先・税込の記載合計 */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -520,7 +530,7 @@ export default function DeliveryPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {!canSave && <p style={{ fontSize: 11, color: 'var(--warn)', margin: 0 }}>保存前に、要確認の明細・税区分・外税・税込合計を確認してください。</p>}
+              {!canSave && <p style={{ fontSize: 11, color: 'var(--warn)', margin: 0 }}>保存前に、伝票の日付・要確認の明細・税区分・外税・税込合計を確認してください。</p>}
               <button
                 onClick={handleSave}
                 disabled={pageState === 'saving' || !canSave}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { TrendMonth, CategoryItem, RecentEntry } from './DashboardClient';
+import { japanDateKey } from '@/lib/deliveryAmounts';
 
 function formatYen(n: number): string {
   const rounded = Math.round(n);
@@ -27,8 +28,8 @@ function DeltaLabel({ curr, prev, invert }: { curr: number; prev: number; invert
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const day = japanDateKey(iso);
+  return `${Number(day.slice(5, 7))}/${Number(day.slice(8, 10))}`;
 }
 
 type FilterTab = 'all' | 'expense' | 'sale';

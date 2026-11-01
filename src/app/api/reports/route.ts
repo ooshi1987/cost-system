@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
-import { getDeliveryPurchaseTotal } from '@/lib/deliveryAmounts';
+import { getDeliveryPurchaseTotal, getDeliveryDocumentDate, getJapanMonthWindows } from '@/lib/deliveryAmounts';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,35 +11,20 @@ export async function GET(request: NextRequest) {
     const storeId = auth.storeId;
     const now = new Date();
 
-    // 過去6ヶ月分の月ラベルと開始日を生成
-    const months: { label: string; year: number; month: number; start: Date; end: Date }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const start = new Date(d.getFullYear(), d.getMonth(), 1);
-      const end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-      months.push({
-        label: `${d.getMonth() + 1}月`,
-        year: d.getFullYear(),
-        month: d.getMonth(),
-        start,
-        end,
-      });
+    const months = getJapanMonthWindows(now);
+    // 登録月で絞ると後日入力した伝票を取りこぼすため、伝票日で集計する。
+    const slips = await prisma.deliverySlip.findMany({
+      where: { storeId },
+      select: { createdAt: true, ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
+    });
+    const totals = new Map<string, number>();
+    for (const slip of slips) {
+      const key = getDeliveryDocumentDate(slip).slice(0, 7);
+      totals.set(key, (totals.get(key) ?? 0) + getDeliveryPurchaseTotal(slip));
     }
-
-    // 月次仕入総額
-    const monthlyTotals = await Promise.all(
-      months.map(async ({ start, end }) => {
-        const slips = await prisma.deliverySlip.findMany({
-          where: { storeId, createdAt: { gte: start, lt: end } },
-          select: { ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
-        });
-        return slips.reduce((sum, slip) => sum + getDeliveryPurchaseTotal(slip), 0);
-      })
-    );
-
-    const monthlyData = months.map((m, i) => ({
+    const monthlyData = months.map((m) => ({
       label: m.label,
-      total: monthlyTotals[i],
+      total: totals.get(m.key) ?? 0,
     }));
 
     // メニュー別利益分析
