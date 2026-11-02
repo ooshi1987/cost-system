@@ -139,7 +139,8 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
 
   const handleMonthChange = (value: string) => {
     const [y, m] = value.split('-').map(Number);
-    router.push(`/daily-ledger?year=${y}&month=${m}`);
+    const view = new URLSearchParams(window.location.search).get('view');
+    router.push(`/daily-ledger?year=${y}&month=${m}${view === 'monthly' ? '&view=monthly' : ''}`);
   };
 
   const methodCount = ledger.methodColumns.length;

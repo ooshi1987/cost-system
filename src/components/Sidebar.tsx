@@ -13,80 +13,21 @@ interface Me {
 }
 
 const NAV_ITEMS = [
-  {
-    href: '/dashboard',
-    label: 'ダッシュボード',
-    exact: true,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4"/>
-        <circle cx="8" cy="8" r="3" fill="currentColor"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/daily-ledger',
-    label: '日次集計表',
-    exact: false,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M1.5 6h13M6 6v7.5" stroke="currentColor" strokeWidth="1.4"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/delivery',
-    label: '仕入れ',
-    exact: true,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M5 8h6M8 5v6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/ingredients',
-    label: '食材・原価',
-    exact: false,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/menu',
-    label: 'メニュー・レシピ',
-    exact: false,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 1.5L14.5 12.5H1.5L8 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/reports',
-    label: 'レポート',
-    exact: false,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 1.5L14.5 8L8 14.5L1.5 8L8 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    href: '/admin',
-    label: '設定',
-    exact: true,
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
-      </svg>
-    ),
-  },
+  { href: '/dashboard', label: '今日の状況', icon: '○', paths: ['/dashboard'] },
+  { href: '/daily-ledger', label: '日次締め', icon: '≡', paths: ['/daily-ledger', '/sales'] },
+  { href: '/delivery', label: '仕入・経費', icon: '▤', paths: ['/delivery', '/delivery-history', '/expense'] },
+  { href: '/review', label: '要確認', icon: '!', paths: ['/review'] },
+  { href: '/daily-ledger?view=monthly', label: '月次・出力', icon: '▥', paths: ['/daily-ledger'] },
+  { href: '/admin', label: '設定', icon: '⚙', paths: ['/admin', '/billing'] },
+];
+
+const OTHER_LINKS = [
+  { href: '/delivery-history', label: '納品履歴' },
+  { href: '/expense', label: '経費を手入力' },
+  { href: '/petty-cash', label: '小口現金' },
+  { href: '/ingredients', label: '食材管理' },
+  { href: '/menu', label: 'メニュー・レシピ' },
+  { href: '/reports', label: '従来のレポート' },
 ];
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
@@ -145,8 +86,6 @@ export default function Sidebar() {
 
   if (hidden) return null;
 
-  const navItems = isSuperAdmin ? SUPER_ADMIN_NAV : NAV_ITEMS;
-
   return (
     <aside className="sidebar print:hidden">
       {/* ロゴ */}
@@ -174,14 +113,18 @@ export default function Sidebar() {
 
       {/* ナビ */}
       <nav style={{ padding: '12px 10px', flex: 1 }}>
-        {navItems.map(({ href, label, icon }) => {
+        {(isSuperAdmin ? SUPER_ADMIN_NAV : NAV_ITEMS).map(({ href, label, icon }) => {
           const isActive = isSuperAdmin
             ? href.includes('?tab=') ? href === `/super-admin?tab=${searchTab}` : searchTab === 'overview' && href.includes('overview')
-            : pathname === href || (!href.includes('?') && pathname.startsWith(href));
+            : href === '/daily-ledger?view=monthly'
+              ? pathname === '/daily-ledger' && searchParams.get('view') === 'monthly'
+              : (href !== '/daily-ledger' || searchParams.get('view') !== 'monthly') &&
+                (NAV_ITEMS.find((item) => item.href === href)?.paths.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ?? false);
           return (
             <Link
               key={href}
               href={href}
+              aria-current={isActive ? 'page' : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -202,6 +145,16 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        {!isSuperAdmin && (
+          <details className="sidebar-other" open={OTHER_LINKS.some(({ href }) => pathname === href || pathname.startsWith(`${href}/`)) || undefined}>
+            <summary>その他の機能</summary>
+            {OTHER_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined}>
+                {label}
+              </Link>
+            ))}
+          </details>
+        )}
       </nav>
 
       {/* ユーザー情報 */}
