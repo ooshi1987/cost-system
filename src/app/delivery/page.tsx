@@ -11,12 +11,14 @@ interface EditableItem {
   totalPrice: string;
   type: 'food' | 'seasoning';
   needsReview?: boolean;
+  sourceQuantity?: string | null;
 }
 
 type PageState = 'capture' | 'processing' | 'reviewing' | 'saving' | 'saved';
 
 export default function DeliveryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submissionIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [pageState, setPageState] = useState<PageState>('capture');
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
@@ -25,6 +27,11 @@ export default function DeliveryPage() {
   const [externalTax, setExternalTax] = useState<number | null>(null);
   const [taxBasis, setTaxBasis] = useState<ReceiptTaxBasis>('unknown');
   const [savedCount, setSavedCount] = useState(0);
+  const [priceNotUpdated, setPriceNotUpdated] = useState<string[]>([]);
+  const [alreadySaved, setAlreadySaved] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [duplicateAccepted, setDuplicateAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // タップ編集用
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -36,7 +43,7 @@ export default function DeliveryPage() {
   );
   const reviewCount = editableItems.filter((item) => item.needsReview).length;
   const reconciliationReady = totalDiff === 0 && taxBasis !== 'unknown';
-  const canSave = isDocumentDate(documentDate) && editableItems.length > 0 && editingIdx === null && reviewCount === 0 && reconciliationReady &&
+  const canSave = confirmed && (!duplicateWarning || duplicateAccepted) && isDocumentDate(documentDate) && editableItems.length > 0 && editingIdx === null && reviewCount === 0 && reconciliationReady &&
     !(taxBasis === 'inclusive' && externalTax !== 0) &&
     isNonNegativeAmount(statedTotal) && isNonNegativeAmount(externalTax) &&
     editableItems.every((item) => item.name.trim() && item.unit.trim() &&
@@ -110,9 +117,10 @@ export default function DeliveryPage() {
       }
       const data = await response.json();
       setEditableItems(
-        data.items.map((item: { name: string; quantity: number; unit: string; totalPrice: number; type?: 'food' | 'seasoning'; needsReview?: boolean }) => ({
+        data.items.map((item: { name: string; sourceQuantity?: string | null; quantity: number | null; unit: string; totalPrice: number; type?: 'food' | 'seasoning'; needsReview?: boolean }) => ({
           name: item.name,
-          quantity: String(item.quantity),
+          sourceQuantity: item.sourceQuantity,
+          quantity: typeof item.quantity === 'number' ? String(item.quantity) : '',
           unit: item.unit,
           totalPrice: String(item.totalPrice),
           type: item.type ?? 'food',
@@ -124,8 +132,10 @@ export default function DeliveryPage() {
       setStatedTotal(data.statedTotal ?? null);
       setExternalTax(isNonNegativeAmount(data.externalTax) ? data.externalTax : null);
       setTaxBasis(isReceiptTaxBasis(data.taxBasis) ? data.taxBasis : 'unknown');
-      setPreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      submissionIdRef.current = crypto.randomUUID();
+      setConfirmed(false);
+      setDuplicateWarning(false);
+      setDuplicateAccepted(false);
       setPageState('reviewing');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
@@ -145,6 +155,8 @@ export default function DeliveryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           vendor: vendor.trim() || null,
+          submissionId: submissionIdRef.current,
+          allowDuplicate: duplicateAccepted,
           receipt: { statedTotal, externalTax, taxBasis, documentDate },
           items: validItems.map((item) => ({
             name: item.name.trim(),
@@ -157,8 +169,12 @@ export default function DeliveryPage() {
       });
       if (!response.ok) {
         const data = await response.json();
+        if (data.code === 'POSSIBLE_DUPLICATE') { setDuplicateWarning(true); setDuplicateAccepted(false); }
         throw new Error(data.error || '保存に失敗しました');
       }
+      const result = await response.json();
+      setAlreadySaved(result.alreadySaved === true);
+      setPriceNotUpdated(Array.isArray(result.priceNotUpdated) ? result.priceNotUpdated : []);
       setSavedCount(validItems.length);
       setPageState('saved');
     } catch (err) {
@@ -172,22 +188,28 @@ export default function DeliveryPage() {
     setEditableItems((prev) => prev.filter((_, i) => i !== idx));
     setEditingIdx(null);
     setEditDraft(null);
+    setConfirmed(false);
+    setDuplicateWarning(false); setDuplicateAccepted(false);
   };
 
   // タップ編集
   const startEdit = (idx: number) => {
     setEditingIdx(idx);
     setEditDraft({ ...editableItems[idx] });
+    setConfirmed(false);
   };
   const cancelEdit = () => {
     setEditingIdx(null);
     setEditDraft(null);
+    setConfirmed(false);
   };
   const saveEdit = () => {
     if (editingIdx === null || !editDraft) return;
     setEditableItems((prev) => prev.map((item, i) => (i === editingIdx ? { ...editDraft, needsReview: false } : item)));
     setEditingIdx(null);
     setEditDraft(null);
+    setConfirmed(false);
+    setDuplicateWarning(false); setDuplicateAccepted(false);
   };
 
   const resetToCapture = () => {
@@ -198,6 +220,12 @@ export default function DeliveryPage() {
     setStatedTotal(null);
     setExternalTax(null);
     setTaxBasis('unknown');
+    submissionIdRef.current = null;
+    setConfirmed(false);
+    setAlreadySaved(false);
+    setPriceNotUpdated([]);
+    setDuplicateWarning(false);
+    setDuplicateAccepted(false);
     setError(null);
     setPageState('capture');
     setEditingIdx(null);
@@ -295,7 +323,11 @@ export default function DeliveryPage() {
 
         {/* ── 確認・編集 ── */}
         {isReviewing && (
-          <>
+          <div onChangeCapture={(event) => {
+            const id = (event.target as HTMLElement).id;
+            if (id !== 'receipt-confirmation' && id !== 'receipt-duplicate-confirmation') { setConfirmed(false); setDuplicateWarning(false); setDuplicateAccepted(false); }
+          }}>
+            {preview && <img src={preview} alt="照合する伝票・レシートの原本" style={{ width: '100%', maxHeight: 240, objectFit: 'contain', borderRadius: 13, background: 'var(--ink)', marginBottom: 12 }} />}
             {/* 要確認 + 合計照合 */}
             <div style={{ display: 'flex', gap: 7, marginBottom: 11 }}>
               <div style={{ flex: 1, background: 'var(--warn-soft)', borderRadius: 11, padding: '9px 10px' }}>
@@ -363,6 +395,7 @@ export default function DeliveryPage() {
             {/* 明細（タップで修正） */}
             <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 14, padding: 12, marginBottom: 10 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', marginBottom: 9 }}>明細（タップで修正）</div>
+              <p style={{ fontSize: 10.5, lineHeight: 1.6, color: 'var(--warn)', margin: '0 0 9px' }}>原本の数量と単位を必ず確認してください。kg・gなどを換算せず、そのまま保存します。</p>
 
               {editableItems.map((item, idx) => {
                 const isEditing = editingIdx === idx;
@@ -482,9 +515,19 @@ export default function DeliveryPage() {
                       <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>{item.quantity} {item.unit}</span>
                       <span style={{ fontSize: 10, color: 'var(--muted)' }}>単価 ¥{unitPrice}</span>
                     </div>
+                    {item.sourceQuantity && <div style={{ fontSize: 10, color: 'var(--muted)' }}>AIが読み取った数量表記: {item.sourceQuantity}</div>}
                   </button>
                 );
               })}
+
+              <button type="button" disabled={editingIdx !== null || pageState === 'saving'} onClick={() => {
+                const draft: EditableItem = { name: '', quantity: '', unit: '', totalPrice: '', type: 'food', needsReview: true };
+                setEditableItems((prev) => [...prev, draft]);
+                setEditingIdx(editableItems.length);
+                setEditDraft(draft);
+                setConfirmed(false);
+                setDuplicateWarning(false); setDuplicateAccepted(false);
+              }} style={{ marginTop: 10, width: '100%', padding: 9, borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--line)', color: 'var(--accent)', fontWeight: 700, fontSize: 12 }}>＋ 明細を追加</button>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 9, paddingTop: 9, borderTop: '2px solid var(--ink)' }}>
                 <span style={{ fontSize: 11, fontWeight: 700 }}>明細合計</span>
@@ -530,7 +573,15 @@ export default function DeliveryPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {!canSave && <p style={{ fontSize: 11, color: 'var(--warn)', margin: 0 }}>保存前に、伝票の日付・要確認の明細・税区分・外税・税込合計を確認してください。</p>}
+              {duplicateWarning && <div style={{ padding: 12, borderRadius: 10, background: 'var(--warn-soft)', color: 'var(--warn)', fontSize: 12, lineHeight: 1.5 }}>
+                <p style={{ margin: '0 0 8px' }}>同じ内容の伝票が登録されています。<Link href="/delivery-history" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>納品履歴</Link>で確認してください。</p>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}><input id="receipt-duplicate-confirmation" type="checkbox" checked={duplicateAccepted} onChange={(e) => setDuplicateAccepted(e.target.checked)} /><span>別の伝票であることを確認しました</span></label>
+              </div>}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, lineHeight: 1.5, color: 'var(--ink-2)' }}>
+                <input id="receipt-confirmation" type="checkbox" checked={confirmed} disabled={pageState === 'saving'} onChange={(e) => setConfirmed(e.target.checked)} style={{ marginTop: 3 }} />
+                <span>伝票の日付・明細・税額・税込合計を原本と照合しました</span>
+              </label>
+              {!canSave && <p style={{ fontSize: 11, color: 'var(--warn)', margin: 0 }}>保存前に、原本との照合と各項目を確認してください。</p>}
               <button
                 onClick={handleSave}
                 disabled={pageState === 'saving' || !canSave}
@@ -549,15 +600,17 @@ export default function DeliveryPage() {
                 撮り直す
               </button>
             </div>
-          </>
+          </div>
         )}
 
         {/* ── 保存完了 ── */}
         {pageState === 'saved' && (
           <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{savedCount}件を保存しました</p>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>食材の単価が更新されました</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{alreadySaved ? 'この伝票は保存済みです' : `${savedCount}件を保存しました`}</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+              {alreadySaved ? '単価の状況は食材管理でご確認ください。' : priceNotUpdated.length ? `同日・より新しい記録や別の更新があるため、${priceNotUpdated.join('、')}の単価は変更していません。食材管理で確認してください。` : '食材の単価を更新しました。'}
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
                 onClick={resetToCapture}

@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
 import { ensureDefaultCategories } from '@/lib/categories';
+import { getJapanMonthWindows, isDocumentDate, japanDateKey } from '@/lib/deliveryAmounts';
+import { lockStoreForWrite } from '@/lib/storeWriteLock';
 
 // 経費の集計対象は Transaction(type:"expense") のみ。
 // DeliverySlip/DeliveryItem は食材単価更新専用のまま据え置き、P&Lには加算しない（二重計上防止）。
 
 function parseDateOnly(value: string): Date | null {
-  const d = new Date(`${value}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return isDocumentDate(value) ? new Date(`${value}T00:00:00+09:00`) : null;
 }
 
 export async function GET(request: NextRequest) {
@@ -25,15 +26,13 @@ export async function GET(request: NextRequest) {
     const fromParam = searchParams.get('from');
     const toParam = searchParams.get('to');
 
-    const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const currentMonth = getJapanMonthWindows(new Date(), 1)[0];
 
-    const from = fromParam ? parseDateOnly(fromParam) : defaultFrom;
+    const from = fromParam ? parseDateOnly(fromParam) : currentMonth.start;
     const toBase = toParam ? parseDateOnly(toParam) : null;
-    const to = toBase ? new Date(toBase.getFullYear(), toBase.getMonth(), toBase.getDate() + 1) : defaultTo;
+    const to = toBase ? new Date(toBase.getTime() + 24 * 60 * 60 * 1000) : currentMonth.end;
 
-    if (!from || !to) {
+    if (!from || (toParam && !toBase) || !to || from.getTime() >= to.getTime()) {
       return NextResponse.json({ error: 'from/to の日付形式が不正です' }, { status: 400 });
     }
 
@@ -103,8 +102,9 @@ export async function POST(request: NextRequest) {
     if (type !== 'sale' && type !== 'expense') {
       return NextResponse.json({ error: 'type は sale または expense を指定してください' }, { status: 400 });
     }
-    const parsedAmount = parseFloat(amount);
-    if (Number.isNaN(parsedAmount) || parsedAmount < 0) {
+    if (source === 'sales_closing_v1') return NextResponse.json({ error: '売上締めは専用画面から保存してください' }, { status: 400 });
+    const parsedAmount = typeof amount === 'number' ? amount : typeof amount === 'string' && amount.trim() ? Number(amount) : NaN;
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
       return NextResponse.json({ error: 'amount は0以上の数値を指定してください' }, { status: 400 });
     }
     const parsedDate = new Date(date);
@@ -119,23 +119,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        storeId: auth.storeId,
-        type,
-        date: parsedDate,
-        amount: parsedAmount,
-        categoryId: categoryId || null,
-        vendor: vendor || null,
-        method: method || 'cash',
-        memo: memo || null,
-        source: source || 'manual',
-        needsReview: needsReview ?? false,
-        imagePath: imagePath || null,
-        statedTotal: statedTotal !== undefined && statedTotal !== null ? parseFloat(statedTotal) : null,
-      },
-      include: { category: true },
-    });
+    const storeId = auth.storeId;
+    const transaction = await prisma.$transaction(async (tx) => {
+      if (type === 'sale') {
+        await lockStoreForWrite(tx, storeId);
+        const from = new Date(`${japanDateKey(parsedDate)}T00:00:00+09:00`);
+        const existingClose = await tx.transaction.findFirst({ where: {
+          storeId, type: 'sale', source: 'sales_closing_v1',
+          date: { gte: from, lt: new Date(from.getTime() + 24 * 60 * 60 * 1000) },
+        }, select: { id: true } });
+        if (existingClose) return null;
+      }
+      return tx.transaction.create({
+        data: {
+          storeId,
+          type,
+          date: parsedDate,
+          amount: parsedAmount,
+          categoryId: categoryId || null,
+          vendor: vendor || null,
+          method: method || 'cash',
+          memo: memo || null,
+          source: source || 'manual',
+          needsReview: needsReview ?? false,
+          imagePath: imagePath || null,
+          statedTotal: statedTotal !== undefined && statedTotal !== null ? parseFloat(statedTotal) : null,
+        },
+        include: { category: true },
+      });
+    }, { maxWait: 15000, timeout: 30000 });
+    if (!transaction) return NextResponse.json({ error: 'この営業日は売上締めが登録済みです。既存の記録を確認してください。' }, { status: 409 });
     return NextResponse.json(transaction, { status: 201 });
   } catch (error) {
     console.error(error);

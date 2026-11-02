@@ -33,7 +33,7 @@ export default function DesktopAdminPanel({ storeName, data }: { storeName: stri
         <div className="owner-metric"><span>今日の売上</span><strong>{today?.hasSales ? yen(today.salesTotal) : '—'}</strong><small>{today?.hasSales ? '売上の登録額' : '売上は未記録'}</small></div>
         <div className="owner-metric"><span>今月の仕入伝票</span><strong>{yen(data.monthlyPurchase)}</strong><small>経費取引 {yen(data.monthlyExpense)}</small><small>合算していません</small></div>
         <div className="owner-metric"><span>今月の入出金差引</span><strong>{yen(data.monthlySales - data.monthlyExpense)}</strong><small>売上−経費取引。伝票は含まれません</small><small>利益ではありません</small></div>
-        <Link href="/review" className="owner-metric owner-metric-link"><span>要確認の取引</span><strong>{data.reviewCount}件</strong><small>今月の取引一覧を見る →</small></Link>
+        <Link href="/review" className="owner-metric owner-metric-link"><span>要確認</span><strong>{data.reviewCount + data.receiptDifferences}件</strong><small>今月の取引・伝票を見る →</small></Link>
       </div>
       <p className="owner-footnote">仕入伝票と経費取引には重複が含まれる場合があるため、合算していません。入出金差引・日次集計表は取引を基にし、仕入伝票は含みません。</p>
 
@@ -55,10 +55,10 @@ export default function DesktopAdminPanel({ storeName, data }: { storeName: stri
           <div className="owner-panel-heading"><div><h2>確認が必要な項目</h2><p>今月の記録</p></div></div>
           <div className="owner-alerts">
             {data.reviewCount > 0 && <Link href="/review"><strong>要確認の取引 {data.reviewCount}件</strong><small>内容を確認する →</small></Link>}
-            {data.receiptDifferences > 0 && <Link href="/delivery-history"><strong>伝票の金額に差額 {data.receiptDifferences}件</strong><small>納品履歴を確認する →</small></Link>}
+            {data.receiptDifferences > 0 && <Link href="/review"><strong>伝票の金額に差額 {data.receiptDifferences}件</strong><small>要確認一覧を見る →</small></Link>}
             {!hasAlerts && <p className="owner-empty">表示できる要確認項目はありません。</p>}
           </div>
-          <p className="owner-panel-note">締めの完了、売上合計との照合、材料価格の変化はまだ判定できません。</p>
+          <p className="owner-panel-note">未登録の伝票や税額未記録の過去伝票は対象外です。締めの完了や材料価格の変化はまだ判定できません。</p>
         </section>
       </div>
     </div>

@@ -157,7 +157,7 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">日次集計表</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {storeName ? `${storeName}・` : ''}今のExcel（損益計算書）と同じ列構成・表示専用
+              {storeName ? `${storeName}・` : ''}登録された売上・経費取引を集計
             </p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
@@ -188,7 +188,7 @@ export default function DailyLedgerClient({ ledger, storeName }: { ledger: Daily
         </div>
 
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 leading-relaxed">
-          修正はこの画面ではできません。読み間違いや仕分けの修正は、現場の記録画面（撮影・入力）側で行ってください。
+          納品書として保存した仕入伝票は含まれません。差引は売上取引と経費取引の差額で、利益ではありません。CSVも同じ対象です。修正は現場の記録画面側で行ってください。
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden print:shadow-none">

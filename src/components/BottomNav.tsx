@@ -13,6 +13,7 @@ const MENU_LINKS: Record<Menu, { href: string; label: string; detail: string }[]
     { href: '/expense', label: '経費を手入力', detail: '経費を手入力で記録' },
   ],
   history: [
+    { href: '/sales/history', label: '売上締め履歴', detail: '保存した売上締めを確認・修正' },
     { href: '/daily-ledger', label: '日次集計表', detail: '日ごとの売上・支出を確認' },
     { href: '/delivery-history', label: '納品履歴', detail: '保存した納品書を確認' },
     { href: '/petty-cash', label: '小口現金', detail: '残高を記入・照合' },
@@ -46,7 +47,7 @@ export default function BottomNav() {
   ) return null;
 
   const captureActive = ['/sales', '/delivery', '/expense'].includes(pathname);
-  const historyActive = ['/delivery-history', '/petty-cash', '/ingredients', '/menu', '/reports'].some(
+  const historyActive = ['/sales/history', '/delivery-history', '/petty-cash', '/ingredients', '/menu', '/reports'].some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 

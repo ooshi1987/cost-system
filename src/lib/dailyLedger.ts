@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { japanDateKey } from '@/lib/deliveryAmounts';
 
 // 経費の取引先のうち月間金額が多い順に採用する件数（残りは「その他」に集約）
 const VENDOR_TOP_N = 3;
@@ -38,11 +39,6 @@ export interface DailyLedger {
   monthTotal: Omit<DailyLedgerRow, 'date' | 'day' | 'weekday'>;
 }
 
-// 取引日は時刻不問のため、日付の比較はローカルの年月日で行う（時刻成分のズレを吸収する）
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 function emptyTotals(methodColumns: string[], vendorColumns: string[]) {
   return {
     salesByMethod: Object.fromEntries(methodColumns.map((m) => [m, 0])),
@@ -54,9 +50,11 @@ function emptyTotals(methodColumns: string[], vendorColumns: string[]) {
 }
 
 export async function getDailyLedger(storeId: string, year: number, month: number): Promise<DailyLedger> {
-  const from = new Date(year, month - 1, 1);
-  const to = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+  const nextMonth = new Date(Date.UTC(year, month, 1)).toISOString().slice(0, 10);
+  const from = new Date(`${monthKey}-01T00:00:00+09:00`);
+  const to = new Date(`${nextMonth}T00:00:00+09:00`);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
   const [salesTx, expenseTx] = await Promise.all([
     prisma.transaction.findMany({
@@ -97,18 +95,18 @@ export async function getDailyLedger(storeId: string, year: number, month: numbe
 
   const rowsMap = new Map<string, DailyLedgerRow>();
   for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(year, month - 1, day);
-    const key = dayKey(d);
+    const d = new Date(Date.UTC(year, month - 1, day));
+    const key = `${monthKey}-${String(day).padStart(2, '0')}`;
     rowsMap.set(key, {
       date: key,
       day,
-      weekday: WEEKDAY_LABELS[d.getDay()],
+      weekday: WEEKDAY_LABELS[d.getUTCDay()],
       ...emptyTotals(methodColumns, vendorColumns),
     });
   }
 
   for (const t of salesTx) {
-    const row = rowsMap.get(dayKey(t.date));
+    const row = rowsMap.get(japanDateKey(t.date));
     if (!row) continue;
     if (!(t.method in row.salesByMethod)) row.salesByMethod[t.method] = 0;
     row.salesByMethod[t.method] += t.amount;
@@ -116,7 +114,7 @@ export async function getDailyLedger(storeId: string, year: number, month: numbe
   }
 
   for (const t of expenseTx) {
-    const row = rowsMap.get(dayKey(t.date));
+    const row = rowsMap.get(japanDateKey(t.date));
     if (!row) continue;
     const catName = t.category?.name;
     const vendorKey =

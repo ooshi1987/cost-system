@@ -13,6 +13,7 @@ export default function MobileToday({
   storeName,
   today,
   reviewCount,
+  receiptDifferences,
   monthlySales,
   monthlyPurchase,
   monthlyExpense,
@@ -20,11 +21,13 @@ export default function MobileToday({
   storeName: string | null;
   today: TodayStatus;
   reviewCount: number;
+  receiptDifferences: number;
   monthlySales: number;
   monthlyPurchase: number;
   monthlyExpense: number;
 }) {
   const router = useRouter();
+  const totalReview = reviewCount + receiptDifferences;
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -78,9 +81,9 @@ export default function MobileToday({
         </Link>
       </div>
 
-      <Link href="/review" className={`today-review ${reviewCount > 0 ? 'has-review' : ''}`}>
+      <Link href="/review" className={`today-review ${totalReview > 0 ? 'has-review' : ''}`}>
         <span className="today-review-icon" aria-hidden="true">!</span>
-        <span><strong>{reviewCount > 0 ? `今月の要確認の取引 ${reviewCount}件` : '今月の要確認の取引はありません'}</strong><small>取引の確認状況を見る</small></span>
+        <span><strong>{totalReview > 0 ? `今月の要確認 ${totalReview}件` : '表示できる要確認はありません'}</strong><small>取引・記録済み伝票の差額を見る</small></span>
         <span className="today-action-arrow" aria-hidden="true">›</span>
       </Link>
 

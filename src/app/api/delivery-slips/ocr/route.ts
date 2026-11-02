@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { getAuth } from '@/lib/auth';
 import { isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
+import { parsePrintedQuantity } from '@/lib/receiptQuantity';
 
 interface OCRResult {
   documentDate?: string | null;
@@ -10,6 +12,7 @@ interface OCRResult {
   taxBasis?: ReceiptTaxBasis;
   items: Array<{
     ingredientName: string;
+    sourceQuantity?: string | null;
     quantity: number;
     unit: string;
     totalPrice: number;
@@ -20,6 +23,8 @@ interface OCRResult {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuth(request);
+    if (!auth?.storeId) return NextResponse.json({ error: 'ログインしてください' }, { status: 401 });
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -31,10 +36,13 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic({ apiKey });
 
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
+    const imageFile = formData.get('image');
 
-    if (!imageFile) {
+    if (!(imageFile instanceof File)) {
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(imageFile.type) || imageFile.size === 0 || imageFile.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'JPEG・PNG・GIF・WebP形式の10MB以下の画像を選んでください' }, { status: 400 });
     }
 
     const buffer = await imageFile.arrayBuffer();
@@ -66,8 +74,8 @@ export async function POST(request: NextRequest) {
 - 明細合計に別途加算する外税の合計（externalTax）。税抜明細に加算する印字された税額のみ。内税は二重加算しないため0。税の扱いが不明ならnull。合計との差額から税額を推測しない。
 - 明細の税区分（taxBasis）: 税抜明細は"exclusive"、税込明細は"inclusive"、混在は"mixed"、不明は"unknown"。
 - 商品名（食材・調味料）
-- 数量（数値のみ）
-- 単位（g / ml / 個 / 本 / 枚 / 袋 / パック / ケース など実際の単位を使用）
+- sourceQuantity（原本に書かれた数量と単位をそのまま繋いだ文字列。例: "2 kg"、"3 本"。数字と単位が別の欄でも同じ行の値を繋ぐ。判読不能や複数解釈がある場合はnull）
+- quantity と unit は sourceQuantity と同じ数値と単位をそのまま返す。単位を換算・正規化しない。例えば原本が「2 kg」なら quantity は 2、unit は "kg" とし、「2000 g」に変えない。
 - 合計金額（円、数値のみ）
 - 種別（"food" または "seasoning"）
 - needsReview（読み取りに自信が無い行は true。文字がかすれている・数量や単価の計算が合わない・手書きで判読しづらい等の場合に true にする）
@@ -84,9 +92,9 @@ export async function POST(request: NextRequest) {
   "externalTax": null,
   "taxBasis": "unknown",
   "items": [
-    {"ingredientName": "鶏もも肉", "quantity": 1000, "unit": "g", "totalPrice": 1000, "type": "food", "needsReview": false},
-    {"ingredientName": "長ネギ", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food", "needsReview": false},
-    {"ingredientName": "醤油", "quantity": 1, "unit": "本", "totalPrice": 298, "type": "seasoning", "needsReview": true}
+    {"ingredientName": "鶏もも肉", "sourceQuantity": "2 kg", "quantity": 2, "unit": "kg", "totalPrice": 1000, "type": "food", "needsReview": false},
+    {"ingredientName": "長ネギ", "sourceQuantity": "2 本", "quantity": 2, "unit": "本", "totalPrice": 718, "type": "food", "needsReview": false},
+    {"ingredientName": "醤油", "sourceQuantity": "1 本", "quantity": 1, "unit": "本", "totalPrice": 298, "type": "seasoning", "needsReview": true}
   ]
 }
 
@@ -120,6 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     const ocrResult: OCRResult = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(ocrResult.items)) throw new Error('伝票の明細を読み取れませんでした');
 
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
@@ -128,14 +137,18 @@ export async function POST(request: NextRequest) {
       statedTotal: isNonNegativeAmount(ocrResult.statedTotal) ? ocrResult.statedTotal : null,
       externalTax: isNonNegativeAmount(ocrResult.externalTax) ? ocrResult.externalTax : null,
       taxBasis: isReceiptTaxBasis(ocrResult.taxBasis) ? ocrResult.taxBasis : 'unknown',
-      items: ocrResult.items.map((item) => ({
-        name: item.ingredientName,
-        quantity: item.quantity,
-        unit: item.unit,
-        totalPrice: item.totalPrice,
-        type: item.type === 'seasoning' ? 'seasoning' : 'food',
-        needsReview: item.needsReview ?? false,
-      })),
+      items: ocrResult.items.map((item) => {
+        const printed = parsePrintedQuantity(item.sourceQuantity);
+        return {
+          name: item.ingredientName,
+          sourceQuantity: typeof item.sourceQuantity === 'string' ? item.sourceQuantity : null,
+          quantity: printed?.quantity ?? null,
+          unit: printed?.unit ?? '',
+          totalPrice: item.totalPrice,
+          type: item.type === 'seasoning' ? 'seasoning' : 'food',
+          needsReview: item.needsReview !== false || !printed || item.quantity !== printed.quantity || item.unit !== printed.unit,
+        };
+      }),
     });
   } catch (error) {
     console.error('OCR Error:', error);

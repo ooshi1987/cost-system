@@ -26,6 +26,7 @@ export default function DashboardClient({
           storeName={storeName}
           today={today}
           reviewCount={owner.reviewCount}
+          receiptDifferences={owner.receiptDifferences}
           monthlySales={owner.monthlySales}
           monthlyPurchase={owner.monthlyPurchase}
           monthlyExpense={owner.monthlyExpense}

@@ -14,21 +14,16 @@ export default async function DashboardPage() {
   const todayKey = japanDateKey(now);
   const monthWindows = getJapanMonthWindows(now, 2);
   const monthKey = todayKey.slice(0, 7);
-  // 要確認一覧の既定期間と揃える。
-  const reviewFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-  const reviewTo = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-  const [transactions, deliverySlips, store, reviewCount] = await Promise.all([
+  const [transactions, deliverySlips, store] = await Promise.all([
     prisma.transaction.findMany({
       where: { storeId, date: { gte: monthWindows[0].start } },
-      select: { type: true, date: true, amount: true, needsReview: true },
+      select: { id: true, type: true, date: true, amount: true, needsReview: true, source: true },
     }),
     prisma.deliverySlip.findMany({
       where: { storeId },
       select: { createdAt: true, ocrRawData: true, deliveryItems: { select: { totalPrice: true } } },
     }),
     prisma.store.findUnique({ where: { id: storeId }, select: { name: true } }),
-    prisma.transaction.count({ where: { storeId, needsReview: true, date: { gte: reviewFrom, lt: reviewTo } } }),
   ]);
 
   const slips = deliverySlips.map((slip) => ({
@@ -37,6 +32,9 @@ export default async function DashboardPage() {
     total: getDeliveryPurchaseTotal(slip),
   }));
   const monthTransactions = transactions.filter((transaction) => japanDateKey(transaction.date).slice(0, 7) === monthKey);
+  const reviewCount = new Set(monthTransactions.filter((transaction) => transaction.needsReview).map((transaction) =>
+    transaction.source === 'sales_closing_v1' ? transaction.id.match(/^(sc1_[0-9a-f]{64}_)/)?.[1] ?? transaction.id : transaction.id,
+  )).size;
   const monthlySales = monthTransactions.filter((transaction) => transaction.type === 'sale').reduce((sum, transaction) => sum + transaction.amount, 0);
   const monthlyExpense = monthTransactions.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0);
   const monthSlips = slips.filter((slip) => slip.documentDate.slice(0, 7) === monthKey);

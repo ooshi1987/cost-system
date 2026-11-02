@@ -22,6 +22,7 @@ const NAV_ITEMS = [
 ];
 
 const OTHER_LINKS = [
+  { href: '/sales/history', label: '売上締め履歴' },
   { href: '/delivery-history', label: '納品履歴' },
   { href: '/expense', label: '経費を手入力' },
   { href: '/petty-cash', label: '小口現金' },

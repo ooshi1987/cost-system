@@ -3,6 +3,7 @@ import { getServerAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getDailyLedger } from '@/lib/dailyLedger';
 import DailyLedgerClient from './DailyLedgerClient';
+import { japanDateKey } from '@/lib/deliveryAmounts';
 
 export default async function DailyLedgerPage({
   searchParams,
@@ -13,11 +14,11 @@ export default async function DailyLedgerPage({
   if (!auth?.storeId) redirect('/login');
 
   const params = await searchParams;
-  const now = new Date();
+  const today = japanDateKey();
   const yearParam = Number(params.year);
   const monthParam = Number(params.month);
-  const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : now.getFullYear();
-  const month = Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12 ? monthParam : now.getMonth() + 1;
+  const year = Number.isInteger(yearParam) && yearParam > 0 ? yearParam : Number(today.slice(0, 4));
+  const month = Number.isInteger(monthParam) && monthParam >= 1 && monthParam <= 12 ? monthParam : Number(today.slice(5, 7));
 
   const [ledger, store] = await Promise.all([
     getDailyLedger(auth.storeId, year, month),
