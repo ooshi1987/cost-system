@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { COST_DATA_VERIFIED } from '@/lib/costVerification';
 
 interface MonthlyData {
   label: string;
@@ -87,7 +88,7 @@ export default function ReportsPage() {
         {/* タブ */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--line-2)', borderRadius: 'var(--r)', padding: 4, marginBottom: 28, width: 'fit-content' }}>
           <button style={tabStyle('monthly')} onClick={() => setTab('monthly')}>月次コスト推移</button>
-          <button style={tabStyle('menu')} onClick={() => setTab('menu')}>メニュー別利益分析</button>
+          {COST_DATA_VERIFIED && <button style={tabStyle('menu')} onClick={() => setTab('menu')}>メニュー別利益分析</button>}
         </div>
 
         {/* ── 月次コスト推移 ── */}

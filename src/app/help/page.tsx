@@ -129,6 +129,12 @@ export default function HelpPage() {
         <h1 className="text-2xl font-extrabold text-gray-900 mb-1">使いかたガイド</h1>
         <p className="text-sm text-gray-400 mb-6">各ページの操作方法を詳しく解説します</p>
 
+        <Link href="/help/daily" className="block mb-8 rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 hover:bg-amber-100 transition-colors">
+          <p className="text-xs font-bold text-amber-700">店長・スタッフはまずここ</p>
+          <p className="text-lg font-bold text-gray-900 mt-0.5">毎日の手順</p>
+          <p className="text-xs text-gray-600 mt-1">仕入伝票の撮影・売上締め・困ったときの対応</p>
+        </Link>
+
         {/* ページ別ガイド */}
         <div className="flex flex-col gap-3 mb-8">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">ページ別の使い方</p>

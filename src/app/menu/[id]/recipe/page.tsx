@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import UnverifiedCostNotice from '@/components/UnverifiedCostNotice';
+import { COST_DATA_VERIFIED } from '@/lib/costVerification';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -234,8 +236,10 @@ export default function RecipePage() {
           </div>
         ) : null}
 
+        <UnverifiedCostNotice />
+
         {/* 原価率カード */}
-        <div className="bg-white rounded-xl shadow p-4 mb-4">
+        {COST_DATA_VERIFIED && <div className="bg-white rounded-xl shadow p-4 mb-4">
           <div className="flex items-baseline gap-3 mb-2">
             <span className={`text-4xl font-bold ${costRateColor}`}>{costRate.toFixed(1)}%</span>
             <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-0.5 font-medium">
@@ -246,7 +250,7 @@ export default function RecipePage() {
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${barWidth}%` }} />
           </div>
-        </div>
+        </div>}
 
         {/* 取込導線 */}
         <Link
@@ -282,7 +286,7 @@ export default function RecipePage() {
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
-                        <div className="text-sm font-semibold text-gray-700">¥{lineCost.toFixed(0)}</div>
+                        {COST_DATA_VERIFIED && <div className="text-sm font-semibold text-gray-700">¥{lineCost.toFixed(0)}</div>}
                         <div className="text-xs text-gray-400">›</div>
                       </div>
                     </div>
@@ -299,10 +303,10 @@ export default function RecipePage() {
               })}
 
               {/* 材料費合計 */}
-              <div className="flex justify-between items-center pt-3 border-t border-gray-100 px-1 mt-2">
+              {COST_DATA_VERIFIED && <div className="flex justify-between items-center pt-3 border-t border-gray-100 px-1 mt-2">
                 <span className="text-sm text-gray-600 font-medium">材料費合計</span>
                 <span className="text-base font-bold text-gray-800">¥{totalCost.toFixed(0)}</span>
-              </div>
+              </div>}
             </div>
           )}
         </div>

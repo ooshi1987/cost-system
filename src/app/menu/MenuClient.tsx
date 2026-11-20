@@ -3,6 +3,8 @@
 import { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import UpgradeModal from '@/components/UpgradeModal';
+import UnverifiedCostNotice from '@/components/UnverifiedCostNotice';
+import { COST_DATA_VERIFIED } from '@/lib/costVerification';
 
 interface RecipeIngredient {
   id: string;
@@ -380,8 +382,10 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
             {menuItems.length > 0 && !reorderMode && <button onClick={enterReorderMode} className="text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-400 transition font-medium">編集</button>}
           </div>
           {!reorderMode && menuItems.length > 0 && (
-            <p className="text-xs text-gray-400 mb-3">タップすると材料・原価率がその場で開きます</p>
+            <p className="text-xs text-gray-400 mb-3">{COST_DATA_VERIFIED ? 'タップすると材料・原価率がその場で開きます' : 'タップすると登録済みの材料がその場で開きます'}</p>
           )}
+
+          <UnverifiedCostNotice />
 
           {menuItems.length === 0 ? (
             <p className="text-gray-500 text-sm">メニューがまだ登録されていません</p>
@@ -475,7 +479,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                         const totalCost = item.recipeItems.reduce((s, r) => s + r.ingredient.costPerUnit * r.quantity, 0);
                         const costRate = item.sellingPrice > 0 && item.recipeItems.length > 0 ? (totalCost / item.sellingPrice) * 100 : null;
                         const unlinkedCount = item.recipeItems.filter((r) => r.ingredient.priceSource === 'unset').length;
-                        const badgeColor = costRate === null ? 'bg-gray-100 text-gray-400' :
+                        const badgeColor = costRate === null || !COST_DATA_VERIFIED ? 'bg-gray-100 text-gray-400' :
                           unlinkedCount > 0 ? 'bg-amber-100 text-amber-700' :
                           costRate <= targetCostRate ? 'bg-green-100 text-green-700' :
                           'bg-orange-100 text-orange-700';
@@ -488,13 +492,13 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                                   <div className="text-sm font-medium truncate">{item.name}</div>
                                   <div className="text-xs text-gray-400 mt-0.5">
                                     ¥{item.sellingPrice.toLocaleString()}
-                                    {item.recipeItems.length > 0 && (
+                                    {COST_DATA_VERIFIED && item.recipeItems.length > 0 && (
                                       <> · 材料費 ¥{totalCost.toFixed(0)}{unlinkedCount > 0 && <> · <span className="text-amber-500">未連動{unlinkedCount}件</span></>}</>
                                     )}
                                   </div>
                                 </div>
                                 <div className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full ${badgeColor}`}>
-                                  {costRate !== null ? `${costRate.toFixed(1)}%${unlinkedCount > 0 ? '※' : ''}` : 'レシピ未登録'}
+                                  {costRate === null ? 'レシピ未登録' : COST_DATA_VERIFIED ? `${costRate.toFixed(1)}%${unlinkedCount > 0 ? '※' : ''}` : '未検証'}
                                 </div>
                                 <span className="text-gray-300 shrink-0 text-xs">{isOpen ? '▲' : '▼'}</span>
                               </button>
@@ -517,7 +521,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                                             <div className="font-medium truncate">{ri.ingredient.name} <span className="text-gray-400 font-normal">{ri.quantity}{ri.ingredient.unit}</span></div>
                                             <div className={`mt-1 inline-block px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.text}</div>
                                           </div>
-                                          <div className="font-semibold text-gray-700 shrink-0 ml-2">¥{lineCost.toFixed(0)}</div>
+                                          {COST_DATA_VERIFIED && <div className="font-semibold text-gray-700 shrink-0 ml-2">¥{lineCost.toFixed(0)}</div>}
                                         </div>
                                       );
                                     })}

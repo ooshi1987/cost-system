@@ -29,6 +29,7 @@ const OTHER_LINKS = [
   { href: '/ingredients', label: '食材管理' },
   { href: '/menu', label: 'メニュー・レシピ' },
   { href: '/reports', label: '従来のレポート' },
+  { href: '/help/daily', label: '毎日の手順' },
 ];
 
 const HIDDEN_PATHS = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];

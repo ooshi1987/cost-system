@@ -20,6 +20,7 @@ const MENU_LINKS: Record<Menu, { href: string; label: string; detail: string }[]
     { href: '/ingredients', label: '食材管理', detail: '登録済みの食材を確認' },
     { href: '/menu', label: 'メニュー・レシピ', detail: '登録済みのメニューを確認' },
     { href: '/reports', label: '従来のレポート', detail: 'これまでの集計を確認' },
+    { href: '/help/daily', label: '毎日の手順', detail: '撮影・締めのやり方と困ったとき' },
   ],
 };
 
