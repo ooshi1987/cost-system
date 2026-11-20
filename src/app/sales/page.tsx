@@ -25,6 +25,7 @@ const METHOD_DOT_COLOR: Record<string, string> = {
 export default function SalesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<File | null>(null);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [pageState, setPageState] = useState<PageState>('capture');
   const [items, setItems] = useState<EditableSalesItem[]>([]);
@@ -68,6 +69,7 @@ export default function SalesPage() {
       { method: 'cashless', label: 'カード・電子決済', amount: '', needsReview: false },
     ];
     setItems(initial);
+    setPhotoPath(null);
     setCustomerCount(null);
     setStatedTotal(null);
     setBusinessDate(japanDateKey());
@@ -100,6 +102,7 @@ export default function SalesPage() {
           needsReview: item.needsReview === true || !isSalesAmount(item.amount),
         }))
       );
+      setPhotoPath(typeof data.photoPath === 'string' ? data.photoPath : null);
       setCustomerCount(Number.isInteger(data.customerCount) && data.customerCount >= 0 && data.customerCount <= 1_000_000 ? data.customerCount : null);
       setStatedTotal(isSalesAmount(data.statedTotal) ? data.statedTotal : null);
       setBusinessDate('');
@@ -143,7 +146,7 @@ export default function SalesPage() {
       const response = await fetch('/api/sales/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessDate, statedTotal, customerCount, confirmed, items: parsedItems }),
+        body: JSON.stringify({ businessDate, statedTotal, customerCount, confirmed, items: parsedItems, photoPath }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || '保存に失敗しました');
@@ -159,6 +162,7 @@ export default function SalesPage() {
   const resetToCapture = () => {
     setPreview(null);
     photoRef.current = null;
+    setPhotoPath(null);
     setItems([]);
     setCustomerCount(null);
     setStatedTotal(null);

@@ -15,6 +15,7 @@ interface Closing {
   businessDate: string;
   statedTotal: number;
   customerCount: number | null;
+  photoPath?: string | null;
   items: (Omit<Row, 'amount'> & { amount: number })[];
 }
 
@@ -89,6 +90,7 @@ export default function SalesClosingReview({ id, onBack, backLabel = '要確認�
         {closing && <>
           <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: 14, padding: 14, marginBottom: 10 }}>
             <p style={{ margin: '0 0 10px', fontSize: 12 }}>営業日 <strong>{closing.businessDate}</strong></p>
+            {closing.photoPath && <a href={`/api/photos?path=${encodeURIComponent(closing.photoPath)}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', margin: '0 0 10px', color: 'var(--accent)', fontSize: 12 }}>原本の写真を見る</a>}
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>原本の売上合計
               <input type="number" min="0" step="0.01" inputMode="decimal" value={total} disabled={saving} onChange={(e) => { setTotal(e.target.value); setConfirmed(false); setMessage(null); }} style={{ ...inputStyle, marginTop: 5, textAlign: 'right' }} />
             </label>

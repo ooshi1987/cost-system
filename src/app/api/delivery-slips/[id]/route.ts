@@ -3,6 +3,7 @@ import { getAuth } from '@/lib/auth';
 import { isNonNegativeAmount, isReceiptTaxBasis, readReceiptMetadata } from '@/lib/deliveryAmounts';
 import { prisma } from '@/lib/prisma';
 import { lockStoreForWrite } from '@/lib/storeWriteLock';
+import { syncDeliveryExpense } from '@/lib/deliveryExpense';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getAuth(request);
@@ -26,6 +27,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       const raw = JSON.parse(current.ocrRawData as string);
       raw.receipt = { ...raw.receipt, statedTotal, externalTax, taxBasis };
       await tx.deliverySlip.update({ where: { id }, data: { ocrRawData: JSON.stringify(raw) } });
+      await syncDeliveryExpense(tx, storeId, id);
       return 'saved';
     }, { maxWait: 15000, timeout: 30000 });
     if (result === 'missing') return NextResponse.json({ error: '伝票が見つかりません' }, { status: 404 });

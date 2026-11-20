@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { calculateReceiptAmounts, getDeliveryDocumentDate, getDeliveryPurchaseTotal, getJapanMonthWindows, japanDateKey, readReceiptMetadata } from '@/lib/deliveryAmounts';
+import { DELIVERY_EXPENSE_SOURCE } from '@/lib/deliveryExpense';
 import DashboardClient from './DashboardClient';
 import type { OwnerDashboardData } from './DesktopAdminPanel';
 
@@ -36,7 +37,8 @@ export default async function DashboardPage() {
     transaction.source === 'sales_closing_v1' ? transaction.id.match(/^(sc1_[0-9a-f]{64}_)/)?.[1] ?? transaction.id : transaction.id,
   )).size;
   const monthlySales = monthTransactions.filter((transaction) => transaction.type === 'sale').reduce((sum, transaction) => sum + transaction.amount, 0);
-  const monthlyExpense = monthTransactions.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0);
+  // 仕入は伝票側で数えるため、伝票から自動作成した経費取引は除く（二重計上防止）
+  const monthlyExpense = monthTransactions.filter((transaction) => transaction.type === 'expense' && transaction.source !== DELIVERY_EXPENSE_SOURCE).reduce((sum, transaction) => sum + transaction.amount, 0);
   const monthSlips = slips.filter((slip) => slip.documentDate.slice(0, 7) === monthKey);
   const monthlyPurchase = monthSlips.reduce((sum, slip) => sum + slip.total, 0);
   const receiptDifferences = monthSlips.filter((slip) => {

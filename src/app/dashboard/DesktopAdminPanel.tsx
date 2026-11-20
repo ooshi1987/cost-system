@@ -31,11 +31,11 @@ export default function DesktopAdminPanel({ storeName, data }: { storeName: stri
 
       <div className="owner-metrics">
         <div className="owner-metric"><span>今日の売上</span><strong>{today?.hasSales ? yen(today.salesTotal) : '—'}</strong><small>{today?.hasSales ? '売上の登録額' : '売上は未記録'}</small></div>
-        <div className="owner-metric"><span>今月の仕入伝票</span><strong>{yen(data.monthlyPurchase)}</strong><small>経費取引 {yen(data.monthlyExpense)}</small><small>合算していません</small></div>
-        <div className="owner-metric"><span>今月の入出金差引</span><strong>{yen(data.monthlySales - data.monthlyExpense)}</strong><small>売上−経費取引。伝票は含まれません</small><small>利益ではありません</small></div>
+        <div className="owner-metric"><span>今月の支出</span><strong>{yen(data.monthlyPurchase + data.monthlyExpense)}</strong><small>仕入伝票 {yen(data.monthlyPurchase)}</small><small>その他経費 {yen(data.monthlyExpense)}</small></div>
+        <div className="owner-metric"><span>今月の入出金差引</span><strong>{yen(data.monthlySales - data.monthlyPurchase - data.monthlyExpense)}</strong><small>売上−仕入伝票−その他経費</small><small>利益ではありません</small></div>
         <Link href="/review" className="owner-metric owner-metric-link"><span>要確認</span><strong>{data.reviewCount + data.receiptDifferences}件</strong><small>今月の取引・伝票を見る →</small></Link>
       </div>
-      <p className="owner-footnote">仕入伝票と経費取引には重複が含まれる場合があるため、合算していません。入出金差引・日次集計表は取引を基にし、仕入伝票は含みません。</p>
+      <p className="owner-footnote">仕入は伝票を保存すると経費にも自動で記録され、日次集計表の取引先別の列に入ります。経費の手入力には仕入を入れないでください（二重計上になります）。</p>
 
       <div className="owner-panels">
         <section className="owner-panel">

@@ -91,9 +91,9 @@ export default function MobileToday({
       <div className="today-metrics">
         <div><span>売上累計</span><strong>{yen(monthlySales)}</strong></div>
         <div><span>仕入伝票</span><strong>{yen(monthlyPurchase)}</strong></div>
-        <div><span>経費取引</span><strong>{yen(monthlyExpense)}</strong></div>
+        <div><span>その他経費</span><strong>{yen(monthlyExpense)}</strong></div>
       </div>
-      <p className="today-metrics-note">仕入伝票と経費取引には重複が含まれる場合があります。</p>
+      <p className="today-metrics-note">仕入は伝票から自動で記録されます。経費の手入力には仕入を入れないでください。</p>
     </div>
   );
 }

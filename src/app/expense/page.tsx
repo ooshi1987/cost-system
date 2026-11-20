@@ -24,7 +24,9 @@ export default function ExpensePage() {
   useEffect(() => {
     fetch('/api/categories?kind=expense')
       .then((res) => res.json())
-      .then((data: Category[]) => {
+      .then((data: Category[] | { error?: string }) => {
+        // 通信・DBの一時的な失敗で画面ごと落ちないよう、配列以外は失敗として扱う
+        if (!Array.isArray(data)) throw new Error('categories unavailable');
         setCategories(data);
         if (data.length > 0) setCategoryId(data[0].id);
       })
@@ -115,6 +117,10 @@ export default function ExpensePage() {
             {pageState === 'saving' ? '保存中…' : '保存'}
           </button>
         </header>
+
+        <p style={{ background: 'var(--accent-soft)', color: 'var(--ink-2)', borderRadius: 10, padding: '9px 12px', fontSize: 11.5, lineHeight: 1.6, marginBottom: 12 }}>
+          仕入（食材・酒）は伝票を撮影して保存すると自動で記録されます。ここには仕入以外の経費を入力してください。
+        </p>
 
         {/* 金額表示 */}
         <div style={{ textAlign: 'center', marginBottom: 14 }}>

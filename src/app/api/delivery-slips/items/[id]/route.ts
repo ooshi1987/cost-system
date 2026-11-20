@@ -3,6 +3,7 @@ import { getAuth } from '@/lib/auth';
 import { getDeliveryDocumentDate } from '@/lib/deliveryAmounts';
 import { prisma } from '@/lib/prisma';
 import { lockStoreForWrite } from '@/lib/storeWriteLock';
+import { syncDeliveryExpense } from '@/lib/deliveryExpense';
 
 // 納品明細の更新と、条件を満たす場合の食材単価更新を一括で確定する。
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         data: { quantity, totalPrice },
       });
       if (changed.count !== 1) return { kind: 'conflict' as const };
+      await syncDeliveryExpense(tx, storeId, current.deliverySlip.id);
 
       const candidates = await tx.deliveryItem.findMany({
         where: { ingredientId: current.ingredientId, deliverySlip: { storeId } },

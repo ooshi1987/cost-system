@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
 import { calculateReceiptAmounts, getDeliveryDocumentDate, japanDateKey, isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptMetadata } from '@/lib/deliveryAmounts';
 import { lockStoreForWrite } from '@/lib/storeWriteLock';
+import { parseStorePhotoPath } from '@/lib/photoStorage';
+import { syncDeliveryExpense } from '@/lib/deliveryExpense';
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,13 +43,16 @@ export async function POST(request: NextRequest) {
     const auth = await getAuth(request);
     if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { items, vendor, receipt, submissionId, allowDuplicate } = (await request.json()) as {
+    const { items, vendor, receipt, submissionId, allowDuplicate, photoPath: rawPhotoPath } = (await request.json()) as {
       items: SaveItem[];
       vendor?: string | null;
       receipt?: ReceiptMetadata;
       submissionId?: string;
       allowDuplicate?: boolean;
+      photoPath?: unknown;
     };
+    const photoPath = parseStorePhotoPath(auth.storeId, rawPhotoPath, 'delivery');
+    if (photoPath === 'invalid') return NextResponse.json({ error: '写真の指定を確認してください' }, { status: 400 });
     if (allowDuplicate !== undefined && typeof allowDuplicate !== 'boolean') return NextResponse.json({ error: '重複確認を確認してください' }, { status: 400 });
     if (submissionId !== undefined && (typeof submissionId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submissionId))) {
       return NextResponse.json({ error: '保存番号を確認してください' }, { status: 400 });
@@ -162,10 +167,12 @@ export async function POST(request: NextRequest) {
           ...(receiptId ? { id: receiptId } : {}),
           ocrRawData: storedRaw,
           vendor: storedVendor,
+          photoPath,
           processedAt: new Date(),
           deliveryItems: { create: deliveryItems },
         },
       });
+      await syncDeliveryExpense(tx, storeId, deliverySlip.id);
       return { deliverySlip, priceNotUpdated, alreadySaved: false, duplicate: false };
     }, { maxWait: 15000, timeout: 30000 });
 

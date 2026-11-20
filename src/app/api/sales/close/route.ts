@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { closingMemo, parseSalesClosing, salesDifference, type SalesClosing } from '@/lib/salesClosing';
 import { lockStoreForWrite } from '@/lib/storeWriteLock';
 import { getJapanMonthWindows, isDocumentDate, japanDateKey } from '@/lib/deliveryAmounts';
+import { parseStorePhotoPath } from '@/lib/photoStorage';
 
 const SOURCE = 'sales_closing_v1';
 
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
 
   const data = parsed.data;
   const storeId = auth.storeId;
+  const photoPath = parseStorePhotoPath(storeId, (body as { photoPath?: unknown }).photoPath, 'sales');
+  if (photoPath === 'invalid') return NextResponse.json({ error: '写真の指定を確認してください' }, { status: 400 });
   const ids = closingIds(storeId, data.businessDate, data.items.length);
   const from = new Date(`${data.businessDate}T00:00:00+09:00`);
   const until = new Date(from.getTime() + 24 * 60 * 60 * 1000);
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
         method: item.method, vendor: item.label, source: SOURCE,
         needsReview: item.needsReview || (index === 0 && difference !== 0),
         statedTotal: data.statedTotal, memo: index === 0 ? closingMemo(data) : null,
+        imagePath: index === 0 ? photoPath : null,
       })) });
       return 'saved';
     }, { maxWait: 15000, timeout: 30000 });

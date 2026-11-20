@@ -21,6 +21,7 @@ export default function DeliveryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const submissionIdRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [pageState, setPageState] = useState<PageState>('capture');
   const [editableItems, setEditableItems] = useState<EditableItem[]>([]);
   const [vendor, setVendor] = useState('');
@@ -99,6 +100,7 @@ export default function DeliveryPage() {
           needsReview: item.needsReview ?? false,
         }))
       );
+      setPhotoPath(typeof data.photoPath === 'string' ? data.photoPath : null);
       setVendor(data.vendor ?? '');
       setDocumentDate(isDocumentDate(data.documentDate) ? data.documentDate : '');
       setStatedTotal(data.statedTotal ?? null);
@@ -130,6 +132,7 @@ export default function DeliveryPage() {
           submissionId: submissionIdRef.current,
           allowDuplicate: duplicateAccepted,
           receipt: { statedTotal, externalTax, taxBasis, documentDate },
+          photoPath,
           items: validItems.map((item) => ({
             name: item.name.trim(),
             quantity: parseFloat(item.quantity),
@@ -186,6 +189,7 @@ export default function DeliveryPage() {
 
   const resetToCapture = () => {
     setPreview(null);
+    setPhotoPath(null);
     setEditableItems([]);
     setVendor('');
     setDocumentDate('');

@@ -18,6 +18,7 @@ interface DeliverySlip {
   id: string;
   vendor: string | null;
   ocrRawData: string | null;
+  photoPath: string | null;
   createdAt: string;
   processedAt: string | null;
   deliveryItems: DeliveryItem[];
@@ -219,6 +220,9 @@ export default function DeliveryHistoryPage() {
                     {!receipt?.documentDate && <p className="text-xs text-amber-700">伝票日未記録：登録日（日本時間）の月に集計</p>}
                     <p className="text-xs text-gray-500">登録日時: {new Date(slip.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}</p>
                     {slip.vendor && <p className="text-sm font-semibold">{slip.vendor}</p>}
+                    {slip.photoPath && (
+                      <a href={`/api/photos?path=${encodeURIComponent(slip.photoPath)}`} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-700 underline">原本の写真を見る</a>
+                    )}
                     {slip.processedAt && (
                       <p className="text-sm text-gray-600">
                         処理済み: {new Date(slip.processedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: Context) {
   try {
     const rows = await prisma.transaction.findMany({
       where: { storeId: auth.storeId, source: SOURCE, id: { startsWith: prefix } },
-      select: { id: true, date: true, amount: true, method: true, vendor: true, statedTotal: true, needsReview: true, memo: true, updatedAt: true },
+      select: { id: true, date: true, amount: true, method: true, vendor: true, statedTotal: true, needsReview: true, memo: true, updatedAt: true, imagePath: true },
     });
     rows.sort((a, b) => Number(a.id.slice(prefix.length)) - Number(b.id.slice(prefix.length)));
     if (!rows.length) return NextResponse.json({ error: '売上締めが見つかりません' }, { status: 404 });
@@ -29,6 +29,7 @@ export async function GET(request: NextRequest, { params }: Context) {
     return NextResponse.json({
       businessDate: japanDateKey(rows[0].date), statedTotal: rows[0].statedTotal,
       customerCount: customerMatch ? Number(customerMatch[1]) : null,
+      photoPath: rows[0].imagePath ?? null,
       items: rows.map((row) => ({ id: row.id, version: salesClosingVersion(row), label: row.vendor ?? '', method: row.method, amount: row.amount, needsReview: row.needsReview })),
     });
   } catch (error) {

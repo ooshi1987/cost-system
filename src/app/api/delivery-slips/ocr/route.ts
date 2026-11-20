@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuth } from '@/lib/auth';
 import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
+import { savePhoto } from '@/lib/photoStorage';
 import { isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 import { parsePrintedQuantity } from '@/lib/receiptQuantity';
 
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
 
     const quotaError = await consumeAiQuota(auth.storeId);
     if (quotaError) return quotaError;
+    // AIの読み取りと並行して、照合用の写真を保存する（失敗しても読み取りは続ける）
+    const photoPathPromise = savePhoto(auth.storeId, 'delivery', imageFile);
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 4096,
@@ -135,7 +138,9 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(ocrResult.items)) throw new UserFacingError('伝票の明細を読み取れませんでした。撮り直してください');
 
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
+    const photoPath = await photoPathPromise;
     return NextResponse.json({
+      photoPath,
       vendor: ocrResult.vendor ?? null,
       documentDate: isDocumentDate(ocrResult.documentDate) ? ocrResult.documentDate : null,
       statedTotal: isNonNegativeAmount(ocrResult.statedTotal) ? ocrResult.statedTotal : null,

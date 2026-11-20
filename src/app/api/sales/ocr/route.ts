@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuth } from '@/lib/auth';
 import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
+import { savePhoto } from '@/lib/photoStorage';
 
 interface OCRResult {
   statedTotal?: number | null;
@@ -45,6 +46,8 @@ export async function POST(request: NextRequest) {
 
     const quotaError = await consumeAiQuota(auth.storeId);
     if (quotaError) return quotaError;
+    // AIの読み取りと並行して、照合用の写真を保存する（失敗しても読み取りは続ける）
+    const photoPathPromise = savePhoto(auth.storeId, 'sales', imageFile);
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 1024,
@@ -108,7 +111,9 @@ export async function POST(request: NextRequest) {
     const ocrResult: OCRResult = JSON.parse(jsonMatch[0]);
     if (!Array.isArray(ocrResult.items)) throw new UserFacingError('売上の内訳を読み取れませんでした。撮り直すか、手入力で記録してください');
 
+    const photoPath = await photoPathPromise;
     return NextResponse.json({
+      photoPath,
       statedTotal: ocrResult.statedTotal ?? null,
       customerCount: ocrResult.customerCount ?? null,
       items: ocrResult.items.map((item) => ({
