@@ -1,0 +1,92 @@
+# 本番DB（Neon）を毎晩バックアップする。
+# - pg_dump で丸ごと書き出し、一時的なPostgresへ復元して中身を確認してから保管する
+# - リポジトリが公開のため、保管前に必ずパスフレーズで暗号化する（GitHub Actionsのアーティファクトに30日保管）
+# - 必要な Secrets: BACKUP_DATABASE_URL（Neonの接続文字列）, BACKUP_PASSPHRASE（暗号化用。失くすと復元できない）
+# 復元手順は docs/db-backup.md を参照。
+name: DB backup
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 毎日 4:00（日本時間）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PG_IMAGE: postgres:17.10
+    services:
+      verify:
+        image: postgres:17.10
+        env:
+          POSTGRES_PASSWORD: verify-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Secrets の確認
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secrets の BACKUP_DATABASE_URL と BACKUP_PASSPHRASE を登録してください（docs/db-backup.md）"
+            exit 1
+          fi
+
+      - name: 本番DBを書き出す
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          echo "STAMP=$(TZ=Asia/Tokyo date +%Y-%m-%d_%H%M)" >> "$GITHUB_ENV"
+          # Neonの休止からの復帰を待てるよう、接続待ちを長めにとる
+          docker run --rm --network host -e DATABASE_URL -e PGCONNECT_TIMEOUT=30 -v "$PWD/backup:/backup" "$PG_IMAGE" \
+            sh -c 'pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file=/backup/costra.dump'
+          test -s backup/costra.dump
+
+      - name: 復元できるか確認する
+        run: |
+          set -euo pipefail
+          # Neon固有の拡張などで一部エラーが出ても、主要テーブルが戻っていれば合格とする
+          docker run --rm --network host -e PGPASSWORD=verify-only -v "$PWD/backup:/backup" "$PG_IMAGE" \
+            sh -c 'pg_restore --no-owner --no-privileges -h 127.0.0.1 -U postgres -d postgres /backup/costra.dump' || true
+          COUNTS=$(docker run --rm --network host -e PGPASSWORD=verify-only "$PG_IMAGE" \
+            psql -h 127.0.0.1 -U postgres -d postgres -At -v ON_ERROR_STOP=1 -c \
+            'SELECT (SELECT count(*) FROM "Store") > 0 AND (SELECT count(*) FROM "User") > 0 AND (SELECT count(*) FROM "Transaction") >= 0 AND (SELECT count(*) FROM "DeliverySlip") >= 0')
+          if [ "$COUNTS" != "t" ]; then
+            echo "::error::復元テストで主要テーブルを確認できませんでした"
+            exit 1
+          fi
+          echo "復元テスト: OK"
+
+      - name: 暗号化する
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 --output "backup/costra_${STAMP}.dump.gpg" backup/costra.dump
+          rm -f backup/costra.dump
+          ls -l backup
+
+      - name: 保管する（30日）
+        uses: actions/upload-artifact@v4
+        with:
+          name: costra-db-${{ env.STAMP }}
+          path: backup/*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error
