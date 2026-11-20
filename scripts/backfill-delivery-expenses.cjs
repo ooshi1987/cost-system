@@ -17,6 +17,9 @@ const { PrismaClient } = require('@prisma/client');
 
 const root = path.resolve(__dirname, '..');
 const apply = process.argv.includes('--apply');
+// --ids=伝票ID,伝票ID … 指定した伝票だけを対象にする（承認した分だけ取り込むため）
+const idsArg = process.argv.find((arg) => arg.startsWith('--ids='));
+const onlyIds = idsArg ? new Set(idsArg.slice('--ids='.length).split(',').filter(Boolean)) : null;
 
 function loadTs(file, deps = {}) {
   const out = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
@@ -52,7 +55,8 @@ async function main() {
   const existing = new Set((await prisma.transaction.findMany({
     where: { source: expense.DELIVERY_EXPENSE_SOURCE }, select: { id: true },
   })).map((row) => row.id));
-  const targets = slips.filter((slip) => !existing.has(expense.deliveryExpenseId(slip.id)));
+  const targets = slips.filter((slip) => !existing.has(expense.deliveryExpenseId(slip.id)) && (!onlyIds || onlyIds.has(slip.id)));
+  if (onlyIds && targets.length !== onlyIds.size) console.log(`⚠ 指定 ${onlyIds.size}件のうち対象は ${targets.length}件（作成済み・存在しないIDを除外）`);
 
   console.log(`伝票 ${slips.length}件 / 作成済み ${slips.length - targets.length}件 / 作成対象 ${targets.length}件`);
   for (const slip of targets) {
