@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
+import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
 import { getEffectivePlan } from '@/lib/stripe';
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, maxRetries: 1 });
     const formData = await request.formData();
     const file = formData.get('file') as File;
     if (!file) return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 });
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (content.type !== 'text') throw new Error('Unexpected response type from Claude');
 
     const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('メニュー情報を抽出できませんでした。');
+    if (!jsonMatch) throw new UserFacingError('メニュー情報を抽出できませんでした。');
 
     const result = JSON.parse(jsonMatch[0]) as { items: ExtractedMenuItem[] };
     if (!result.items || result.items.length === 0) {
@@ -90,6 +91,6 @@ export async function POST(request: NextRequest) {
     if (msg.includes('request_too_large') || msg.includes('413')) {
       return NextResponse.json({ error: 'ファイルが大きすぎます。10MB以下のPDFか画像でお試しください。' }, { status: 413 });
     }
-    return NextResponse.json({ error: msg || '読み取りに失敗しました' }, { status: 500 });
+    return NextResponse.json({ error: userFacingMessage(error, '読み取りに失敗しました') }, { status: 500 });
   }
 }

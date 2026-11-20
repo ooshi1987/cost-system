@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
 import { getEffectivePlan } from '@/lib/stripe';
+import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 
 interface CommitItem {
   name: string;
@@ -40,13 +41,13 @@ export async function POST(request: NextRequest) {
       const recipe = recipes[index];
       try {
         if (recipe.mode === 'new' && !recipe.menuName.trim()) {
-          throw new Error('メニュー名を入力してください');
+          throw new UserFacingError('メニュー名を入力してください');
         }
         if (recipe.mode === 'matched' && !recipe.menuItemId) {
-          throw new Error('振り分け先メニューが未選択です');
+          throw new UserFacingError('振り分け先メニューが未選択です');
         }
         if (recipe.mode === 'new' && plan.menuItems !== Infinity && menuItemCount >= plan.menuItems) {
-          throw new Error(`${plan.name}プランではメニューは${plan.menuItems}品まで登録できます。`);
+          throw new UserFacingError(`${plan.name}プランではメニューは${plan.menuItems}品まで登録できます。`);
         }
 
         const menuItemId = await prisma.$transaction(async (tx) => {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
             targetMenuItemId = created.id;
           } else {
             const existing = await tx.menuItem.findFirst({ where: { id: recipe.menuItemId!, storeId } });
-            if (!existing) throw new Error('振り分け先メニューが見つかりません');
+            if (!existing) throw new UserFacingError('振り分け先メニューが見つかりません');
             if (recipe.sellPrice !== null && recipe.sellPrice !== undefined) {
               await tx.menuItem.update({ where: { id: existing.id }, data: { sellingPrice: recipe.sellPrice } });
             }
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
         if (recipe.mode === 'new') menuItemCount++;
         results.push({ index, success: true, menuItemId });
       } catch (err) {
-        results.push({ index, success: false, error: err instanceof Error ? err.message : '登録に失敗しました' });
+        results.push({ index, success: false, error: userFacingMessage(err, '登録に失敗しました') });
       }
     }
 

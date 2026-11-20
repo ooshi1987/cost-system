@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAuth } from '@/lib/auth';
+import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
 import { isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
 import { parsePrintedQuantity } from '@/lib/receiptQuantity';
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, maxRetries: 1 });
 
     const formData = await request.formData();
     const imageFile = formData.get('image');
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (quotaError) return quotaError;
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (message.stop_reason === 'max_tokens') {
-      throw new Error('明細が多く読み取り結果が途中で終了しました。伝票を分けて確認してください');
+      throw new UserFacingError('明細が多く読み取り結果が途中で終了しました。伝票を分けて撮影してください');
     }
     const content = message.content[0];
     if (content.type !== 'text') {
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const ocrResult: OCRResult = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(ocrResult.items)) throw new Error('伝票の明細を読み取れませんでした');
+    if (!Array.isArray(ocrResult.items)) throw new UserFacingError('伝票の明細を読み取れませんでした。撮り直してください');
 
     // DB保存はしない — フロントで確認・編集後に /api/delivery-slips (POST) で保存
     return NextResponse.json({
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('OCR Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'OCR processing failed' },
+      { error: userFacingMessage(error, '読み取りに失敗しました。撮り直してください') },
       { status: 500 }
     );
   }

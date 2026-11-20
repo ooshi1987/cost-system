@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAuth } from '@/lib/auth';
+import { UserFacingError, userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
 
 interface OCRResult {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, maxRetries: 1 });
 
     const formData = await request.formData();
     const imageFile = formData.get('image');
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     const ocrResult: OCRResult = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(ocrResult.items)) throw new Error('売上の内訳を読み取れませんでした');
+    if (!Array.isArray(ocrResult.items)) throw new UserFacingError('売上の内訳を読み取れませんでした。撮り直すか、手入力で記録してください');
 
     return NextResponse.json({
       statedTotal: ocrResult.statedTotal ?? null,
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Sales OCR Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'OCR processing failed' },
+      { error: userFacingMessage(error, '読み取りに失敗しました。撮り直すか、手入力で記録してください') },
       { status: 500 }
     );
   }

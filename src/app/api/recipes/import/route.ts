@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
+import { userFacingMessage } from '@/lib/apiError';
 import { consumeAiQuota } from '@/lib/aiUsage';
 
 // ─── 文字列突合ヘルパー ──────────────────────────────────
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, maxRetries: 1 });
     const contentItem = isPdf
       ? { type: 'document' as const, source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: base64 } }
       : { type: 'image' as const, source: { type: 'base64' as const, media_type: file.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64 } };
@@ -213,6 +214,6 @@ export async function POST(request: NextRequest) {
     if (msg.includes('request_too_large') || msg.includes('413')) {
       return NextResponse.json({ error: 'ファイルが大きすぎます。10MB以下の画像でお試しください。' }, { status: 413 });
     }
-    return NextResponse.json({ error: msg || '読み取りに失敗しました' }, { status: 500 });
+    return NextResponse.json({ error: userFacingMessage(error, '読み取りに失敗しました') }, { status: 500 });
   }
 }
