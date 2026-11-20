@@ -58,7 +58,8 @@ async function main() {
   const targets = slips.filter((slip) => !existing.has(expense.deliveryExpenseId(slip.id)) && (!onlyIds || onlyIds.has(slip.id)));
   if (onlyIds && targets.length !== onlyIds.size) console.log(`⚠ 指定 ${onlyIds.size}件のうち対象は ${targets.length}件（作成済み・存在しないIDを除外）`);
 
-  console.log(`伝票 ${slips.length}件 / 作成済み ${slips.length - targets.length}件 / 作成対象 ${targets.length}件`);
+  const created = slips.filter((slip) => existing.has(expense.deliveryExpenseId(slip.id))).length;
+  console.log(`伝票 ${slips.length}件 / 作成済み ${created}件 / 今回の対象 ${targets.length}件`);
   for (const slip of targets) {
     const date = amounts.getDeliveryDocumentDate(slip);
     const amount = amounts.getDeliveryPurchaseTotal(slip);
