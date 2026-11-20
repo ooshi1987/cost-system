@@ -1,6 +1,8 @@
 import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { cache } from 'react';
+import { prisma } from './prisma';
 
 export type UserRole = 'tenant_admin' | 'store_staff';
 
@@ -37,19 +39,63 @@ export async function verifyToken(token: string): Promise<AuthPayload | null> {
   }
 }
 
-/** リクエストからAuthPayloadを取得（APIルート用） */
-export async function getAuth(req: NextRequest): Promise<AuthPayload | null> {
-  const token = req.cookies.get('auth-token')?.value;
-  if (!token) return null;
-  return verifyToken(token);
+/**
+ * JWTの中身が今もDBと一致しているかを確かめる。
+ * 削除されたユーザー、役割・担当店舗の変更、パスワード変更前に発行されたログインを無効にする。
+ */
+async function confirmAuth(payload: AuthPayload & { iat?: number }): Promise<AuthPayload | null> {
+  if (payload.tenantId === '__super__') {
+    const admin = await prisma.superAdmin.findUnique({ where: { id: payload.userId }, select: { id: true } });
+    return admin ? payload : null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: {
+      tenantId: true,
+      role: true,
+      updatedAt: true,
+      storeUsers: { select: { storeId: true } },
+      tenant: { select: { stores: { where: { id: payload.storeId ?? '' }, select: { id: true } } } },
+    },
+  });
+  if (!user || user.tenantId !== payload.tenantId || user.role !== payload.role) return null;
+  // パスワード変更などでユーザーが更新された後は、それ以前に発行したログインを無効にする
+  if (typeof payload.iat === 'number' && Math.floor(user.updatedAt.getTime() / 1000) > payload.iat) return null;
+  if (payload.storeId) {
+    const allowed = payload.role === 'store_staff'
+      ? user.storeUsers.some((entry) => entry.storeId === payload.storeId)
+      : user.tenant.stores.length === 1;
+    if (!allowed) return null;
+  }
+  return payload;
 }
 
-/** Server Component / Server Action からAuthPayloadを取得 */
-export async function getServerAuth(): Promise<AuthPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
+async function authFromToken(token: string | undefined): Promise<AuthPayload | null> {
   if (!token) return null;
-  return verifyToken(token);
+  const payload = await verifyToken(token);
+  return payload ? confirmAuth(payload) : null;
+}
+
+/** リクエストからAuthPayloadを取得（APIルート用） */
+export async function getAuth(req: NextRequest): Promise<AuthPayload | null> {
+  return authFromToken(req.cookies.get('auth-token')?.value);
+}
+
+/** Server Component / Server Action からAuthPayloadを取得（同じリクエスト内では1回だけDB確認） */
+export const getServerAuth = cache(async (): Promise<AuthPayload | null> => {
+  const cookieStore = await cookies();
+  return authFromToken(cookieStore.get('auth-token')?.value);
+});
+
+/** オーナー（tenant_admin）以外を拒否する。削除・マスタ変更などに使う */
+export function isOwner(auth: AuthPayload | null): boolean {
+  return auth?.role === 'tenant_admin' && auth.tenantId !== '__super__';
+}
+
+/** 新規登録の受付。SIGNUP_ENABLED=true のときだけ開く（既定は停止） */
+export function isSignupEnabled(): boolean {
+  return process.env.SIGNUP_ENABLED === 'true';
 }
 
 /** トライアル上限（後方互換のため残す） */

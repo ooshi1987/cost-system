@@ -6,6 +6,12 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["start.sh"],
       "port": 3000
+    },
+    {
+      "name": "cost-system-offline-check",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "DATABASE_URL='postgresql://local:local@127.0.0.1:5999/none?connect_timeout=2' AUTH_SECRET='local-build-only-secret-000000000000' ANTHROPIC_API_KEY='local-disabled' STRIPE_SECRET_KEY='sk_test_local_disabled' npx next start -p 3100"],
+      "port": 3100
     }
   ]
 }

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { calculateReceiptAmounts, isNonNegativeAmount, isReceiptTaxBasis, isDocumentDate, TAX_BASIS_LABELS, type ReceiptTaxBasis } from '@/lib/deliveryAmounts';
+import { compressImage } from '@/lib/compressImage';
 
 interface EditableItem {
   name: string;
@@ -50,41 +51,12 @@ export default function DeliveryPage() {
       isNonNegativeAmount(parseFloat(item.quantity)) && parseFloat(item.quantity) > 0 &&
       isNonNegativeAmount(parseFloat(item.totalPrice)));
 
-  // ── 画像圧縮 ──
-  const compressImage = async (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-          const maxSize = 2000;
-          if (width > height ? width > maxSize : height > maxSize) {
-            if (width > height) { height = Math.round((height * maxSize) / width); width = maxSize; }
-            else { width = Math.round((width * maxSize) / height); height = maxSize; }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('画像変換に失敗しました'));
-          }, 'image/jpeg', 0.7);
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   // ── ファイル選択 ──
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const compressedBlob = await compressImage(file);
-      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+      const compressedFile = await compressImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setPreview(e.target?.result as string);

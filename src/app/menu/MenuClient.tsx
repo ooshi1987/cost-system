@@ -178,7 +178,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
   };
   const deleteItem = async (id: string) => {
     if (!confirm('この商品を削除しますか？レシピ情報も削除されます。')) return;
-    try { await fetch(`/api/menu-items/${id}`, { method: 'DELETE' }); await fetchMenuItems(); if (editingId === id) cancelEdit(); }
+    try { const res = await fetch(`/api/menu-items/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? '削除に失敗しました'); return; } await fetchMenuItems(); if (editingId === id) cancelEdit(); }
     catch { alert('削除に失敗しました'); }
   };
 
@@ -430,7 +430,7 @@ export default function MenuClient({ initialMenuItems, initialCategoryOrder, tar
                 <button onClick={saveReorder} disabled={reorderSaving} className="flex-1 bg-amber-500 text-white py-2.5 rounded-xl font-semibold hover:bg-amber-600 disabled:bg-gray-300 text-sm">{reorderSaving ? '保存中…' : '✓ 並び順を保存する'}</button>
                 <button onClick={cancelReorder} disabled={reorderSaving} className="px-4 py-2.5 border rounded-xl text-gray-600 hover:bg-gray-50 text-sm">キャンセル</button>
               </div>
-              <button onClick={async () => { if (!confirm(`登録済みの${menuItems.length}件をすべて削除しますか？\nレシピ情報もすべて削除されます。`)) return; await fetch('/api/menu-items', { method: 'DELETE' }); await fetchMenuItems(); setReorderMode(false); setSelectedCategory(null); }} disabled={reorderSaving} className="w-full py-2 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-red-200 hover:border-red-300 transition disabled:opacity-30">
+              <button onClick={async () => { if (!confirm(`登録済みの${menuItems.length}件をすべて削除しますか？\nレシピ情報もすべて削除されます。`)) return; const res = await fetch('/api/menu-items', { method: 'DELETE' }); if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? '削除に失敗しました'); return; } await fetchMenuItems(); setReorderMode(false); setSelectedCategory(null); }} disabled={reorderSaving} className="w-full py-2 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-red-200 hover:border-red-300 transition disabled:opacity-30">
                 🗑️ 全件削除（{menuItems.length}件すべて削除）
               </button>
               {movingItem && (

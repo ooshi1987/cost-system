@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { isDocumentDate, japanDateKey } from '@/lib/deliveryAmounts';
 import { isSalesAmount, salesDifference, type SalesClosingItem, type SalesMethod } from '@/lib/salesClosing';
+import { compressImage } from '@/lib/compressImage';
 
 interface EditableSalesItem {
   method: SalesMethod;
@@ -23,6 +24,7 @@ const METHOD_DOT_COLOR: Record<string, string> = {
 
 export default function SalesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [pageState, setPageState] = useState<PageState>('capture');
   const [items, setItems] = useState<EditableSalesItem[]>([]);
@@ -44,24 +46,45 @@ export default function SalesPage() {
   const canSave = pageState === 'reviewing' && editingIdx === null && isDocumentDate(businessDate) && businessDate <= japanDateKey() &&
     statedTotal !== null && isSalesAmount(statedTotal) && allItemsValid && confirmed;
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreview(e.target?.result as string);
+    try {
+      // 送信サイズの上限を超えないよう、撮影画像を縮小してから使う
+      const compressed = await compressImage(file);
+      photoRef.current = compressed;
+      setPreview(URL.createObjectURL(compressed));
       setError(null);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      photoRef.current = null;
+      setError('画像の読み込みに失敗しました。別の画像を選ぶか、手入力してください');
+    }
+  };
+
+  // 読み取りに失敗した・写真がない日でも締めを止めないための手入力
+  const startManualEntry = () => {
+    const initial: EditableSalesItem[] = [
+      { method: 'cash', label: '現金', amount: '', needsReview: false },
+      { method: 'cashless', label: 'カード・電子決済', amount: '', needsReview: false },
+    ];
+    setItems(initial);
+    setCustomerCount(null);
+    setStatedTotal(null);
+    setBusinessDate(japanDateKey());
+    setConfirmed(false);
+    setError(null);
+    setEditingIdx(0);
+    setEditDraft({ ...initial[0] });
+    setPageState('reviewing');
   };
 
   const handleOcr = async () => {
-    if (!fileInputRef.current?.files?.[0]) { setError('画像を選択してください'); return; }
+    if (!photoRef.current) { setError('画像を選択してください'); return; }
     setPageState('processing');
     setError(null);
     try {
       const formData = new FormData();
-      formData.append('image', fileInputRef.current.files[0]);
+      formData.append('image', photoRef.current);
       const response = await fetch('/api/sales/ocr', { method: 'POST', body: formData });
       if (!response.ok) {
         const err = await response.json();
@@ -135,6 +158,7 @@ export default function SalesPage() {
 
   const resetToCapture = () => {
     setPreview(null);
+    photoRef.current = null;
     setItems([]);
     setCustomerCount(null);
     setStatedTotal(null);
@@ -213,6 +237,14 @@ export default function SalesPage() {
                 読み取り開始
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={startManualEntry}
+              style={{ marginTop: 10, width: '100%', background: 'none', color: 'var(--ink-2)', padding: '11px 0', borderRadius: 13, fontWeight: 600, fontSize: 13, border: '1px solid var(--line)' }}
+            >
+              写真なしで手入力する
+            </button>
 
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
           </div>
@@ -348,7 +380,7 @@ export default function SalesPage() {
                 disabled={pageState === 'saving'}
                 style={{ width: '100%', padding: '11px 0', borderRadius: 13, fontWeight: 600, fontSize: 13, background: 'var(--line-2)', color: 'var(--ink-2)', border: 'none' }}
               >
-                撮り直す
+                {preview ? '撮り直す' : '入力をやめて戻る'}
               </button>
             </div>
           </>

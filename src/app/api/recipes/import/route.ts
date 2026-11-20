@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
+import { consumeAiQuota } from '@/lib/aiUsage';
 
 // ─── 文字列突合ヘルパー ──────────────────────────────────
 
@@ -122,6 +123,8 @@ export async function POST(request: NextRequest) {
 - 画像が原価表・レシピ表でない場合は {"error": "理由"} のみを返してください
 - JSON以外の文字列は一切出力しないでください`;
 
+    const quotaError = await consumeAiQuota(auth.storeId);
+    if (quotaError) return quotaError;
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 4096,

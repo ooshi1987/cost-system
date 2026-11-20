@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getAuth } from '@/lib/auth';
+import { getAuth, isOwner } from '@/lib/auth';
 import { getEffectivePlan } from '@/lib/stripe';
 
 export async function GET(request: NextRequest) {
@@ -69,6 +69,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const auth = await getAuth(request);
     if (!auth?.storeId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOwner(auth)) return NextResponse.json({ error: '削除はオーナーのアカウントで行ってください' }, { status: 403 });
 
     await prisma.menuItem.deleteMany({ where: { storeId: auth.storeId } });
     return NextResponse.json({ success: true });

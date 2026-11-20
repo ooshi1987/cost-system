@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAuth } from '@/lib/auth';
+import { consumeAiQuota } from '@/lib/aiUsage';
 
 interface OCRResult {
   statedTotal?: number | null;
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
     const base64 = Buffer.from(buffer).toString('base64');
     const mimeType = imageFile.type || 'image/jpeg';
 
+    const quotaError = await consumeAiQuota(auth.storeId);
+    if (quotaError) return quotaError;
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 1024,

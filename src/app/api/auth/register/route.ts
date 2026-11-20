@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { signToken } from '@/lib/auth';
+import { isSignupEnabled, signToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
+  if (!isSignupEnabled()) {
+    return NextResponse.json({ error: '現在、新規登録は受け付けていません。導入のご相談はお問い合わせください。' }, { status: 403 });
+  }
   try {
     const { companyName, email, password } = await request.json();
 

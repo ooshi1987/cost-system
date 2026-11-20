@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 import { getAuth } from '@/lib/auth';
+import { consumeAiQuota } from '@/lib/aiUsage';
 import { getEffectivePlan } from '@/lib/stripe';
 
 interface ExtractedMenuItem {
@@ -62,6 +63,8 @@ export async function POST(request: NextRequest) {
       ? { type: 'document' as const, source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: base64 } }
       : { type: 'image' as const, source: { type: 'base64' as const, media_type: file.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64 } };
 
+    const quotaError = await consumeAiQuota(auth.storeId);
+    if (quotaError) return quotaError;
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 2048,
